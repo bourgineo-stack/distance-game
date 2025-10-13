@@ -59,6 +59,8 @@
       background: white;
       padding: 10px;
       border-radius: 12px;
+      min-height: 200px;
+      min-width: 200px;
     }
     .participant-card {
       background: rgba(255, 255, 255, 0.2);
@@ -154,6 +156,14 @@
       margin: 10px 0;
       display: none;
     }
+    .success-message {
+      background: rgba(76, 175, 80, 0.2);
+      border: 1px solid #4CAF50;
+      padding: 10px;
+      border-radius: 8px;
+      margin: 10px 0;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -171,6 +181,7 @@
       <p>Scannez un maximum de personnes ! À chaque fois que vous trouvez quelqu'un à moins de 10km, une question s'affiche pour briser la glace.</p>
       
       <div class="error-message" id="errorMessage"></div>
+      <div class="success-message" id="successMessage"></div>
       
       <input id="userAddress" placeholder="📍 Entrez votre adresse ou ville" />
       <button id="saveLocation">Valider ma localisation</button>
@@ -237,16 +248,17 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
   <script>
-    const $ = id => document.getElementById(id);
+    // Fonction utilitaire pour sélectionner les éléments
+    function $(id) {
+      return document.getElementById(id);
+    }
+
     let myCoords = null;
     let myCityName = '';
     let participants = [];
     let scanning = false;
     let animationFrameId = null;
     let workCoords = null;
-    const video = $('video');
-    const canvas = $('canvas');
-    const ctx = canvas.getContext('2d');
 
     // Questions amusantes pour briser la glace
     const questions = [
@@ -269,11 +281,25 @@
     // Afficher les erreurs
     function showError(message) {
       const errorDiv = $('errorMessage');
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-      setTimeout(() => {
-        errorDiv.style.display = 'none';
-      }, 5000);
+      if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        setTimeout(() => {
+          errorDiv.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    // Afficher les succès
+    function showSuccess(message) {
+      const successDiv = $('successMessage');
+      if (successDiv) {
+        successDiv.textContent = message;
+        successDiv.style.display = 'block';
+        setTimeout(() => {
+          successDiv.style.display = 'none';
+        }, 3000);
+      }
     }
 
     // Calcul de distance
@@ -287,28 +313,46 @@
 
     // Géocodage avec gestion adresse/ville
     async function geocode(location) {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&addressdetails=1`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (!data || data.length === 0) throw new Error('Localisation non trouvée');
-      
-      return { 
-        lat: parseFloat(data[0].lat), 
-        lon: parseFloat(data[0].lon), 
-        displayName: data[0].display_name,
-        cityName: data[0].address.city || data[0].address.town || data[0].address.village || data[0].display_name.split(',')[0]
-      };
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&addressdetails=1`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data || data.length === 0) throw new Error('Localisation non trouvée');
+        
+        const firstResult = data[0];
+        let cityName = firstResult.display_name.split(',')[0];
+        
+        // Essayer d'extraire un meilleur nom de ville
+        if (firstResult.address) {
+          cityName = firstResult.address.city || firstResult.address.town || firstResult.address.village || cityName;
+        }
+        
+        return { 
+          lat: parseFloat(firstResult.lat), 
+          lon: parseFloat(firstResult.lon), 
+          displayName: firstResult.display_name,
+          cityName: cityName
+        };
+      } catch (error) {
+        throw new Error('Erreur de géocodage: ' + error.message);
+      }
     }
 
     // Génération QR Code ultra-simple
     function genMyQRCode() {
-      $('qrcode').innerHTML = '';
+      const qrcodeElement = $('qrcode');
+      if (!qrcodeElement) {
+        showError('Élément QR code non trouvé');
+        return;
+      }
+      
+      qrcodeElement.innerHTML = '';
       
       // Données ultra-simplifiées : seulement les coordonnées
       const qrData = `${myCoords.lat.toFixed(6)},${myCoords.lon.toFixed(6)}`;
       
       try {
-        new QRCode($('qrcode'), {
+        new QRCode(qrcodeElement, {
           text: qrData,
           width: 180,
           height: 180,
@@ -325,12 +369,19 @@
     // Navigation entre étapes
     function showStep(stepNumber) {
       // Cacher toutes les étapes
-      document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
-      document.querySelectorAll('.step-dot').forEach(dot => dot.classList.remove('active'));
+      document.querySelectorAll('.step').forEach(step => {
+        if (step) step.classList.remove('active');
+      });
+      document.querySelectorAll('.step-dot').forEach(dot => {
+        if (dot) dot.classList.remove('active');
+      });
       
       // Afficher l'étape demandée
-      $(`step${stepNumber}`).classList.add('active');
-      $(`step${stepNumber}Dot`).classList.add('active');
+      const stepElement = $(`step${stepNumber}`);
+      const dotElement = $(`step${stepNumber}Dot`);
+      
+      if (stepElement) stepElement.classList.add('active');
+      if (dotElement) dotElement.classList.add('active');
       
       // Arrêter la caméra si on quitte l'étape 1
       if (stepNumber !== 1) {
@@ -355,7 +406,7 @@
       const participant = {
         lat,
         lon,
-        cityName,
+        cityName: cityName || 'Localité inconnue',
         distance,
         timestamp: Date.now(),
         id: Math.random().toString(36).substr(2, 9)
@@ -373,8 +424,9 @@
       }
       
       // Activer le bouton vers l'étape 3 si on a au moins 5 participants
-      if (participants.length >= 5) {
-        $('nextToStep3').style.display = 'block';
+      const nextButton = $('nextToStep3');
+      if (nextButton && participants.length >= 5) {
+        nextButton.style.display = 'block';
       }
       
       return true;
@@ -383,28 +435,44 @@
     // Afficher une question aléatoire
     function showRandomQuestion() {
       const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
-      $('questionBubble').textContent = randomQuestion;
-      $('questionSection').style.display = 'block';
+      const questionBubble = $('questionBubble');
+      const questionSection = $('questionSection');
       
-      // Cacher la question après 10 secondes
-      setTimeout(() => {
-        $('questionSection').style.display = 'none';
-      }, 10000);
+      if (questionBubble && questionSection) {
+        questionBubble.textContent = randomQuestion;
+        questionSection.style.display = 'block';
+        
+        // Cacher la question après 10 secondes
+        setTimeout(() => {
+          if (questionSection) {
+            questionSection.style.display = 'none';
+          }
+        }, 10000);
+      }
     }
 
     // Mettre à jour la progression
     function updateProgress() {
       const scanCount = participants.length;
-      $('scanCount').textContent = scanCount;
+      const scanCountElement = $('scanCount');
+      const progressElement = $('step1Progress');
+      
+      if (scanCountElement) {
+        scanCountElement.textContent = scanCount;
+      }
       
       // Progression basée sur le nombre de scans (max 20 pour 100%)
       const progress = Math.min((scanCount / 20) * 100, 100);
-      $('step1Progress').style.width = `${progress}%`;
+      if (progressElement) {
+        progressElement.style.width = `${progress}%`;
+      }
     }
 
     // Vue Top 5
     function updateTop5View() {
       const container = $('top5List');
+      if (!container) return;
+      
       container.innerHTML = '';
       
       const top5 = participants.slice(0, 5);
@@ -437,6 +505,8 @@
     function updateMapView() {
       const container = $('mapContainer');
       const legend = $('mapLegend');
+      
+      if (!container || !legend) return;
       
       // Nettoyer la carte
       container.querySelectorAll('.map-point').forEach(point => point.remove());
@@ -479,29 +549,50 @@
     // Gestion caméra
     function stopCamera() {
       scanning = false;
-      $('#stopScanBtn').style.display = 'none';
-      $('#scanBtn').style.display = 'block';
-      $('#scanBtn').classList.add('scan-animation');
+      
+      const stopScanBtn = $('stopScanBtn');
+      const scanBtn = $('scanBtn');
+      const video = $('video');
+      
+      if (stopScanBtn) stopScanBtn.style.display = 'none';
+      if (scanBtn) {
+        scanBtn.style.display = 'block';
+        scanBtn.classList.add('scan-animation');
+      }
       
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
       }
       
-      if (video.srcObject) {
+      if (video && video.srcObject) {
         video.srcObject.getTracks().forEach(track => track.stop());
         video.srcObject = null;
       }
       
-      video.style.display = 'none';
+      if (video) video.style.display = 'none';
     }
 
     function startScanLoop() {
+      const video = $('video');
+      const canvas = $('canvas');
+      const scanBtn = $('scanBtn');
+      const stopScanBtn = $('stopScanBtn');
+      
+      if (!video || !canvas) {
+        showError('Éléments caméra non trouvés');
+        return;
+      }
+      
       scanning = true;
-      $('#scanBtn').style.display = 'none';
-      $('#scanBtn').classList.remove('scan-animation');
-      $('#stopScanBtn').style.display = 'block';
+      if (scanBtn) {
+        scanBtn.style.display = 'none';
+        scanBtn.classList.remove('scan-animation');
+      }
+      if (stopScanBtn) stopScanBtn.style.display = 'block';
       video.style.display = 'block';
+      
+      const ctx = canvas.getContext('2d');
       
       navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'environment' }
@@ -535,28 +626,16 @@
                     if (!isNaN(lat) && !isNaN(lon)) {
                       if (addParticipant(lat, lon, myCityName)) {
                         const distance = haversineKm(myCoords.lat, myCoords.lon, lat, lon);
-                        $('#scanResult').innerHTML = `
-                          <div style="color:#4CAF50; text-align:center; margin:10px 0;">
-                            ✅ Connecté ! Distance: ${distance.toFixed(1)} km
-                          </div>
-                        `;
+                        showSuccess(`✅ Connecté ! Distance: ${distance.toFixed(1)} km`);
                       } else {
-                        $('#scanResult').innerHTML = `
-                          <div style="color:#ff9800; text-align:center; margin:10px 0;">
-                            ⚠️ Déjà connecté avec cette personne
-                          </div>
-                        `;
+                        showError('⚠️ Déjà connecté avec cette personne');
                       }
                     }
                     return;
                   }
                 } catch (e) {
                   console.log('QR code invalide');
-                  $('#scanResult').innerHTML = `
-                    <div style="color:#ff6b6b; text-align:center; margin:10px 0;">
-                      ❌ QR code non reconnu
-                    </div>
-                  `;
+                  showError('❌ QR code non reconnu');
                 }
               }
             } catch (error) {
@@ -575,44 +654,65 @@
     }
 
     // Événements
-    $('saveLocation').addEventListener('click', async () => {
-      const location = $('userAddress').value.trim();
-      if (!location) {
-        showError('Entrez votre localisation');
-        return;
+    document.addEventListener('DOMContentLoaded', function() {
+      const saveLocationBtn = $('saveLocation');
+      const scanBtn = $('scanBtn');
+      const stopScanBtn = $('stopScanBtn');
+      const workAddress = $('workAddress');
+      
+      if (saveLocationBtn) {
+        saveLocationBtn.addEventListener('click', async () => {
+          const userAddress = $('userAddress');
+          if (!userAddress) {
+            showError('Champ adresse non trouvé');
+            return;
+          }
+          
+          const location = userAddress.value.trim();
+          if (!location) {
+            showError('Entrez votre localisation');
+            return;
+          }
+          
+          try {
+            const res = await geocode(location);
+            myCoords = { 
+              lat: res.lat, 
+              lon: res.lon
+            };
+            myCityName = res.cityName;
+            
+            const qrcodeContainer = $('qrcodeContainer');
+            const scanSection = $('scanSection');
+            
+            if (qrcodeContainer) qrcodeContainer.style.display = 'block';
+            if (scanSection) scanSection.style.display = 'block';
+            
+            genMyQRCode();
+            showSuccess(`✅ Localisation enregistrée : ${res.cityName}`);
+            
+          } catch (e) {
+            showError('Erreur: ' + e.message);
+          }
+        });
       }
       
-      try {
-        const res = await geocode(location);
-        myCoords = { 
-          lat: res.lat, 
-          lon: res.lon
-        };
-        myCityName = res.cityName;
-        
-        $('qrcodeContainer').style.display = 'block';
-        $('scanSection').style.display = 'block';
-        genMyQRCode();
-        
-        $('#scanResult').innerHTML = `
-          <div style="color:#4CAF50; text-align:center;">
-            ✅ Localisation enregistrée : ${res.cityName}
-          </div>
-        `;
-        
-      } catch (e) {
-        showError('Erreur: ' + e.message);
+      if (scanBtn) {
+        scanBtn.addEventListener('click', startScanLoop);
       }
-    });
-
-    $('scanBtn').addEventListener('click', startScanLoop);
-    $('stopScanBtn').addEventListener('click', stopCamera);
-
-    $('workAddress').addEventListener('change', function() {
-      if (this.value) {
-        const [lat, lon] = this.value.split(',').map(Number);
-        workCoords = { lat, lon };
-        updateMapView();
+      
+      if (stopScanBtn) {
+        stopScanBtn.addEventListener('click', stopCamera);
+      }
+      
+      if (workAddress) {
+        workAddress.addEventListener('change', function() {
+          if (this.value) {
+            const [lat, lon] = this.value.split(',').map(Number);
+            workCoords = { lat, lon };
+            updateMapView();
+          }
+        });
       }
     });
 
