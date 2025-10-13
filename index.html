@@ -89,10 +89,33 @@
     .question-bubble {
       background: rgba(76, 175, 80, 0.3);
       border: 2px solid #4CAF50;
-      padding: 15px;
+      padding: 20px;
       border-radius: 12px;
       margin: 15px 0;
       text-align: center;
+    }
+    .question-options {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0;
+      justify-content: center;
+    }
+    .question-option {
+      flex: 1;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .question-option:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .question-option.selected {
+      background: rgba(76, 175, 80, 0.4);
+      border-color: #4CAF50;
     }
     .scan-animation {
       animation: pulse 2s infinite;
@@ -190,6 +213,13 @@
       border-radius: 12px;
       margin: 15px 0;
     }
+    .continue-btn {
+      background: #2196F3;
+      margin-top: 10px;
+    }
+    .continue-btn:disabled {
+      background: #cccccc;
+    }
   </style>
 </head>
 <body>
@@ -227,7 +257,11 @@
       </div>
 
       <div id="questionSection" style="display: none;">
-        <div class="question-bubble" id="questionBubble"></div>
+        <div class="question-bubble">
+          <div id="questionBubble"></div>
+          <div class="question-options" id="questionOptions"></div>
+          <button id="continueBtn" class="continue-btn" disabled>➡️ Continuer à scanner</button>
+        </div>
       </div>
 
       <div class="progress-bar">
@@ -305,22 +339,48 @@
     let score = 0;
     let gameActive = false;
 
-    // Questions amusantes pour briser la glace
+    // Questions avec choix multiples
     const questions = [
-      "Quel est ton fruit préféré ? 🍎🍌🍇",
-      "Plutôt chien ou chat ? 🐶🐱",
-      "Quelle est ta série du moment ? 📺",
-      "Plutôt mer ou montagne ? 🌊⛰️",
-      "Quel est ton plat préféré ? 🍕🍝",
-      "Plutôt café ou thé ? ☕🍵",
-      "Quel est ton super-pouvoir secret ? 🦸‍♂️",
-      "Plutôt livre ou film ? 📚🎬",
-      "Quelle est ta chanson du moment ? 🎵",
-      "Plutôt sport ou détente ? 🏃‍♂️🛋️",
-      "Quel est ton rêve de voyage ? ✈️",
-      "Plutôt matin ou soir ? 🌅🌃",
-      "Quel est ton jeu vidéo préféré ? 🎮",
-      "Plutôt sucré ou salé ? 🍰🍕"
+      {
+        question: "Plutôt chien ou chat ?",
+        options: ["🐶 Chien", "🐱 Chat"]
+      },
+      {
+        question: "Plutôt mer ou montagne ?",
+        options: ["🌊 Mer", "⛰️ Montagne"]
+      },
+      {
+        question: "Plutôt café ou thé ?",
+        options: ["☕ Café", "🍵 Thé"]
+      },
+      {
+        question: "Plutôt livre ou film ?",
+        options: ["📚 Livre", "🎬 Film"]
+      },
+      {
+        question: "Plutôt sport ou détente ?",
+        options: ["🏃‍♂️ Sport", "🛋️ Détente"]
+      },
+      {
+        question: "Plutôt matin ou soir ?",
+        options: ["🌅 Matin", "🌃 Soir"]
+      },
+      {
+        question: "Plutôt sucré ou salé ?",
+        options: ["🍰 Sucré", "🍕 Salé"]
+      },
+      {
+        question: "Plutôt ville ou campagne ?",
+        options: ["🏙️ Ville", "🌳 Campagne"]
+      },
+      {
+        question: "Plutôt été ou hiver ?",
+        options: ["☀️ Été", "⛄ Hiver"]
+      },
+      {
+        question: "Plutôt voyage ou maison ?",
+        options: ["✈️ Voyage", "🏠 Maison"]
+      }
     ];
 
     // Système de scoring
@@ -553,6 +613,52 @@
       return true;
     }
 
+    // Afficher une question avec choix
+    function showRandomQuestion() {
+      const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+      const questionBubble = $('questionBubble');
+      const questionOptions = $('questionOptions');
+      const questionSection = $('questionSection');
+      const continueBtn = $('continueBtn');
+      
+      if (questionBubble && questionOptions && questionSection) {
+        questionBubble.textContent = randomQuestion.question;
+        questionOptions.innerHTML = '';
+        
+        // Créer les options
+        randomQuestion.options.forEach((option, index) => {
+          const optionDiv = document.createElement('div');
+          optionDiv.className = 'question-option';
+          optionDiv.textContent = option;
+          optionDiv.onclick = function() {
+            // Désélectionner toutes les options
+            document.querySelectorAll('.question-option').forEach(opt => {
+              opt.classList.remove('selected');
+            });
+            // Sélectionner cette option
+            this.classList.add('selected');
+            // Activer le bouton continuer
+            continueBtn.disabled = false;
+          };
+          questionOptions.appendChild(optionDiv);
+        });
+        
+        // Réinitialiser le bouton continuer
+        continueBtn.disabled = true;
+        continueBtn.onclick = function() {
+          questionSection.style.display = 'none';
+          // Réactiver le bouton scan
+          $('scanBtn').style.display = 'block';
+          $('scanBtn').classList.add('scan-animation');
+        };
+        
+        questionSection.style.display = 'block';
+        
+        // Arrêter automatiquement la caméra
+        stopCamera();
+      }
+    }
+
     // Ajouter un participant avec question si <10km
     function addParticipant(data) {
       // Vérifier par ID unique au lieu des coordonnées
@@ -587,25 +693,6 @@
       }
       
       return true;
-    }
-
-    // Afficher une question aléatoire
-    function showRandomQuestion() {
-      const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
-      const questionBubble = $('questionBubble');
-      const questionSection = $('questionSection');
-      
-      if (questionBubble && questionSection) {
-        questionBubble.textContent = randomQuestion;
-        questionSection.style.display = 'block';
-        
-        // Cacher la question après 10 secondes
-        setTimeout(() => {
-          if (questionSection) {
-            questionSection.style.display = 'none';
-          }
-        }, 10000);
-      }
     }
 
     // Mettre à jour la progression
@@ -717,6 +804,8 @@
                         showError('⚠️ Déjà connecté avec cette personne');
                       }
                     }
+                    // Arrêter automatiquement la caméra après un scan réussi
+                    stopCamera();
                     return;
                   }
                 } catch (e) {
