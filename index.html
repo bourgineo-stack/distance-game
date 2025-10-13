@@ -239,6 +239,7 @@
   <script>
     const $ = id => document.getElementById(id);
     let myCoords = null;
+    let myCityName = '';
     let participants = [];
     let scanning = false;
     let animationFrameId = null;
@@ -295,30 +296,25 @@
         lat: parseFloat(data[0].lat), 
         lon: parseFloat(data[0].lon), 
         displayName: data[0].display_name,
-        address: data[0].address
+        cityName: data[0].address.city || data[0].address.town || data[0].address.village || data[0].display_name.split(',')[0]
       };
     }
 
-    // Génération QR Code avec données réduites
+    // Génération QR Code ultra-simple
     function genMyQRCode() {
       $('qrcode').innerHTML = '';
       
-      // Données réduites pour éviter l'erreur de taille
-      const qrData = {
-        lat: myCoords.lat.toFixed(6), // Réduire la précision
-        lon: myCoords.lon.toFixed(6),
-        n: myCoords.shortName, // Nom court seulement
-        t: Date.now()
-      };
+      // Données ultra-simplifiées : seulement les coordonnées
+      const qrData = `${myCoords.lat.toFixed(6)},${myCoords.lon.toFixed(6)}`;
       
       try {
         new QRCode($('qrcode'), {
-          text: JSON.stringify(qrData),
+          text: qrData,
           width: 180,
           height: 180,
           colorDark: '#000000',
           colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel.M // Niveau de correction plus bas pour plus de capacité
+          correctLevel: QRCode.CorrectLevel.L
         });
       } catch (error) {
         showError("Erreur génération QR code: " + error.message);
@@ -350,7 +346,7 @@
     }
 
     // Ajouter un participant avec question si <10km
-    function addParticipant(lat, lon, address) {
+    function addParticipant(lat, lon, cityName) {
       // Éviter les doublons
       const existing = participants.find(p => p.lat === lat && p.lon === lon);
       if (existing) return false;
@@ -359,7 +355,7 @@
       const participant = {
         lat,
         lon,
-        address,
+        cityName,
         distance,
         timestamp: Date.now(),
         id: Math.random().toString(36).substr(2, 9)
@@ -428,10 +424,10 @@
         else if (index === 2) medal = '🥉 ';
         
         card.innerHTML = `
-          <strong>${medal}${participant.address.split(',')[0]}</strong>
+          <strong>${medal}${participant.cityName}</strong>
           <span class="distance-badge">${participant.distance.toFixed(1)} km</span>
           <div style="clear:both;"></div>
-          <small>${participant.address}</small>
+          <small>Rencontré à ${new Date(participant.timestamp).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</small>
         `;
         container.appendChild(card);
       });
@@ -466,7 +462,7 @@
         
         point.style.left = `${Math.max(10, Math.min(90, x))}%`;
         point.style.top = `${Math.max(10, Math.min(90, y))}%`;
-        point.title = `${participant.address.split(',')[0]} (${participant.distance.toFixed(1)}km)`;
+        point.title = `${participant.cityName} (${participant.distance.toFixed(1)}km)`;
         
         container.appendChild(point);
       });
@@ -530,22 +526,27 @@
               
               if (code) {
                 try {
-                  const parsed = JSON.parse(code.data);
-                  if (parsed.lat && parsed.lon) {
-                    const address = parsed.n || 'Localité inconnue';
+                  // Le QR code contient maintenant juste "lat,lon"
+                  const coords = code.data.split(',');
+                  if (coords.length === 2) {
+                    const lat = parseFloat(coords[0]);
+                    const lon = parseFloat(coords[1]);
                     
-                    if (addParticipant(parseFloat(parsed.lat), parseFloat(parsed.lon), address)) {
-                      $('#scanResult').innerHTML = `
-                        <div style="color:#4CAF50; text-align:center; margin:10px 0;">
-                          ✅ Connecté ! Distance: ${haversineKm(myCoords.lat, myCoords.lon, parseFloat(parsed.lat), parseFloat(parsed.lon)).toFixed(1)} km
-                        </div>
-                      `;
-                    } else {
-                      $('#scanResult').innerHTML = `
-                        <div style="color:#ff9800; text-align:center; margin:10px 0;">
-                          ⚠️ Déjà connecté avec cette personne
-                        </div>
-                      `;
+                    if (!isNaN(lat) && !isNaN(lon)) {
+                      if (addParticipant(lat, lon, myCityName)) {
+                        const distance = haversineKm(myCoords.lat, myCoords.lon, lat, lon);
+                        $('#scanResult').innerHTML = `
+                          <div style="color:#4CAF50; text-align:center; margin:10px 0;">
+                            ✅ Connecté ! Distance: ${distance.toFixed(1)} km
+                          </div>
+                        `;
+                      } else {
+                        $('#scanResult').innerHTML = `
+                          <div style="color:#ff9800; text-align:center; margin:10px 0;">
+                            ⚠️ Déjà connecté avec cette personne
+                          </div>
+                        `;
+                      }
                     }
                     return;
                   }
@@ -585,10 +586,9 @@
         const res = await geocode(location);
         myCoords = { 
           lat: res.lat, 
-          lon: res.lon, 
-          displayName: res.displayName,
-          shortName: res.displayName.split(',')[0] // Nom court pour le QR code
+          lon: res.lon
         };
+        myCityName = res.cityName;
         
         $('qrcodeContainer').style.display = 'block';
         $('scanSection').style.display = 'block';
@@ -596,7 +596,7 @@
         
         $('#scanResult').innerHTML = `
           <div style="color:#4CAF50; text-align:center;">
-            ✅ Localisation enregistrée : ${res.displayName.split(',')[0]}
+            ✅ Localisation enregistrée : ${res.cityName}
           </div>
         `;
         
