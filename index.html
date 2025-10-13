@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Jeu de proximité</title>
+  <title>Défi Covoiturage</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <style>
     * { box-sizing: border-box; }
@@ -69,6 +69,14 @@
       border-radius: 12px;
       border-left: 4px solid #4CAF50;
     }
+    .participant-card.target {
+      border-left: 4px solid #ffd700;
+      background: rgba(255, 215, 0, 0.2);
+    }
+    .participant-card.scanned {
+      border-left: 4px solid #4CAF50;
+      background: rgba(76, 175, 80, 0.3);
+    }
     .distance-badge {
       background: #ffd700;
       color: #333;
@@ -105,33 +113,6 @@
       height: 100%;
       background: #4CAF50;
       transition: width 0.3s ease;
-    }
-    .map-container {
-      width: 100%;
-      height: 300px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      margin: 20px 0;
-      position: relative;
-      overflow: hidden;
-    }
-    .map-point {
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      background: #4CAF50;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-    }
-    .map-center {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 8px;
-      height: 8px;
-      background: red;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
     }
     h2 { text-align: center; margin-bottom: 20px; }
     .step-indicator {
@@ -179,6 +160,36 @@
       margin: 10px 0;
       font-size: 0.9em;
     }
+    .game-stats {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 15px;
+      border-radius: 12px;
+      margin: 15px 0;
+      text-align: center;
+    }
+    .score-badge {
+      background: linear-gradient(45deg, #FFD700, #FFA500);
+      color: #333;
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin: 10px 0;
+      display: inline-block;
+    }
+    .attempts-counter {
+      font-size: 1.1rem;
+      margin: 10px 0;
+    }
+    .target-list {
+      margin: 20px 0;
+    }
+    .game-instructions {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 12px;
+      margin: 15px 0;
+    }
   </style>
 </head>
 <body>
@@ -187,7 +198,6 @@
     <div class="step-indicator">
       <div class="step-dot active" id="step1Dot"></div>
       <div class="step-dot" id="step2Dot"></div>
-      <div class="step-dot" id="step3Dot"></div>
     </div>
 
     <!-- Étape 1 : Flashage libre avec questions -->
@@ -226,45 +236,39 @@
       <p>Personnes scannées : <span id="scanCount">0</span></p>
 
       <div class="navigation-buttons">
-        <button onclick="showStep(2)" id="goToStep2" disabled>🌟 Voir mes voisins</button>
+        <button onclick="showStep(2)" id="goToStep2" disabled>🎮 Lancer le défi voisins</button>
       </div>
     </div>
 
-    <!-- Étape 2 : Top 5 des plus proches -->
+    <!-- Étape 2 : Défi des voisins -->
     <div id="step2" class="step">
-      <h2>🌟 Étape 2 : Vos plus proches voisins</h2>
-      <p>Retrouvez et connectez-vous avec les personnes qui habitent le plus près de chez vous !</p>
+      <h2>🎮 Défi des Voisins</h2>
       
-      <div id="top5List"></div>
-      
-      <div class="navigation-buttons">
-        <button onclick="showStep(1)">⬅️ Retour au scan</button>
-        <button onclick="showStep(3)" id="goToStep3">🗺️ Voir la carte</button>
+      <div class="game-instructions">
+        <p><strong>Objectif :</strong> Scanner 3 de vos 5 voisins les plus proches</p>
+        <p><strong>Règles :</strong> 5 essais maximum - Moins d'erreurs = meilleur score !</p>
       </div>
-    </div>
 
-    <!-- Étape 3 : Carte collective -->
-    <div id="step3" class="step">
-      <h2>🗺️ Étape 3 : Carte du territoire</h2>
-      <p>Le centre de la pièce représente le lieu de travail. Positionnez-vous sur la carte !</p>
-      
-      <select id="workAddress">
-        <option value="">Sélectionnez le lieu de travail</option>
-        <option value="48.8566,2.3522">Paris (exemple)</option>
-        <option value="45.7640,4.8357">Lyon (exemple)</option>
-        <option value="43.2965,5.3698">Marseille (exemple)</option>
-      </select>
-      
-      <div class="map-container" id="mapContainer">
-        <div class="map-center"></div>
-        <!-- Les points seront ajoutés dynamiquement -->
+      <div class="game-stats">
+        <div class="score-badge" id="scoreBadge">Score: 0/3</div>
+        <div class="attempts-counter">Essais restants: <span id="attemptsLeft">5</span></div>
+        <div id="gameResult"></div>
       </div>
-      
-      <div id="mapLegend"></div>
-      
+
+      <div class="target-list">
+        <h3>🎯 Vos 5 voisins les plus proches :</h3>
+        <div id="targetList"></div>
+      </div>
+
+      <div id="gameScanSection">
+        <button id="gameScanBtn" class="scan-animation">📱 Scanner un voisin</button>
+        <button id="gameStopScanBtn" style="display: none; background: #ff6b6b;">🛑 Arrêter</button>
+        <div id="gameScanResult"></div>
+      </div>
+
       <div class="navigation-buttons">
-        <button onclick="showStep(2)">⬅️ Retour aux voisins</button>
-        <button onclick="showStep(1)">📱 Retour au scan</button>
+        <button onclick="showStep(1)">⬅️ Retour aux rencontres</button>
+        <button onclick="resetGame()" id="resetGameBtn" style="background: #ff9800;">🔄 Recommencer le défi</button>
       </div>
     </div>
 
@@ -293,7 +297,13 @@
     let participants = [];
     let scanning = false;
     let animationFrameId = null;
-    let workCoords = null;
+    
+    // Variables du jeu
+    let gameTargets = [];
+    let scannedTargets = [];
+    let attemptsLeft = 5;
+    let score = 0;
+    let gameActive = false;
 
     // Questions amusantes pour briser la glace
     const questions = [
@@ -312,6 +322,16 @@
       "Quel est ton jeu vidéo préféré ? 🎮",
       "Plutôt sucré ou salé ? 🍰🍕"
     ];
+
+    // Système de scoring
+    const scoreTitles = {
+      0: "🎯 Expert du covoiturage !",
+      1: "🚗 Pro du covoiturage",
+      2: "👍 Bon partenaire",
+      3: "😊 Débutant motivé",
+      4: "🤔 En apprentissage",
+      5: "🎯 À retenter !"
+    };
 
     // Afficher les erreurs
     function showError(message) {
@@ -416,17 +436,121 @@
       if (stepElement) stepElement.classList.add('active');
       if (dotElement) dotElement.classList.add('active');
       
-      // Arrêter la caméra si on quitte l'étape 1
-      if (stepNumber !== 1) {
-        stopCamera();
+      // Arrêter la caméra si on change d'étape
+      stopCamera();
+      
+      // Initialiser le jeu si on va à l'étape 2
+      if (stepNumber === 2) {
+        initGame();
+      }
+    }
+
+    // Initialiser le jeu
+    function initGame() {
+      if (participants.length < 5) {
+        showError("Vous devez scanner au moins 5 personnes pour jouer !");
+        setTimeout(() => showStep(1), 2000);
+        return;
       }
       
-      // Mettre à jour les vues
-      if (stepNumber === 2) {
-        updateTop5View();
-      } else if (stepNumber === 3) {
-        updateMapView();
+      // Sélectionner les 5 plus proches
+      gameTargets = participants.slice(0, 5);
+      scannedTargets = [];
+      attemptsLeft = 5;
+      score = 0;
+      gameActive = true;
+      
+      updateGameDisplay();
+    }
+
+    // Réinitialiser le jeu
+    function resetGame() {
+      initGame();
+    }
+
+    // Mettre à jour l'affichage du jeu
+    function updateGameDisplay() {
+      // Mettre à jour le score
+      $('scoreBadge').textContent = `Score: ${score}/3`;
+      $('attemptsLeft').textContent = attemptsLeft;
+      
+      // Mettre à jour la liste des cibles
+      const targetList = $('targetList');
+      targetList.innerHTML = '';
+      
+      gameTargets.forEach((target, index) => {
+        const card = document.createElement('div');
+        card.className = 'participant-card';
+        
+        if (scannedTargets.includes(target.id)) {
+          card.classList.add('scanned');
+        } else {
+          card.classList.add('target');
+        }
+        
+        let medal = '';
+        if (index === 0) medal = '🥇 ';
+        else if (index === 1) medal = '🥈 ';
+        else if (index === 2) medal = '🥉 ';
+        
+        card.innerHTML = `
+          <strong>${medal}${target.cityName}</strong>
+          <span class="distance-badge">${target.distance.toFixed(1)} km</span>
+          <div style="clear:both;"></div>
+          ${scannedTargets.includes(target.id) ? '<small style="color:#4CAF50">✅ Trouvé !</small>' : '<small style="color:#ffd700">🎯 À scanner</small>'}
+        `;
+        targetList.appendChild(card);
+      });
+      
+      // Vérifier si le jeu est terminé
+      checkGameEnd();
+    }
+
+    // Vérifier la fin du jeu
+    function checkGameEnd() {
+      if (score >= 3 || attemptsLeft <= 0) {
+        gameActive = false;
+        const errors = (5 - attemptsLeft) - score;
+        const title = scoreTitles[errors] || scoreTitles[5];
+        
+        $('gameResult').innerHTML = `
+          <div style="color:#4CAF50; font-weight:bold; font-size:1.2rem;">
+            ${title}
+          </div>
+          <div>
+            ${score} voisins trouvés sur 3<br>
+            ${errors} erreur(s) commise(s)
+          </div>
+        `;
+        
+        $('gameScanBtn').disabled = true;
       }
+    }
+
+    // Scanner pendant le jeu
+    function handleGameScan(data) {
+      if (!gameActive) return false;
+      
+      // Vérifier si c'est une cible
+      const targetIndex = gameTargets.findIndex(target => target.id === data.id);
+      
+      if (targetIndex !== -1) {
+        // C'est une cible valide
+        if (!scannedTargets.includes(data.id)) {
+          scannedTargets.push(data.id);
+          score++;
+          showSuccess(`✅ Bravo ! ${gameTargets[targetIndex].cityName} est bien un de vos voisins !`);
+        } else {
+          showError("⚠️ Vous avez déjà scanné cette personne !");
+        }
+      } else {
+        // Ce n'est pas une cible
+        showError("❌ Ce n'est pas un de vos 5 voisins les plus proches !");
+      }
+      
+      attemptsLeft--;
+      updateGameDisplay();
+      return true;
     }
 
     // Ajouter un participant avec question si <10km
@@ -456,9 +580,9 @@
         showRandomQuestion();
       }
       
-      // Activer le bouton vers l'étape 2 si on a au moins 1 participant
+      // Activer le bouton vers l'étape 2 si on a au moins 5 participants
       const goToStep2 = $('goToStep2');
-      if (goToStep2 && participants.length >= 1) {
+      if (goToStep2 && participants.length >= 5) {
         goToStep2.disabled = false;
       }
       
@@ -501,96 +625,25 @@
       }
     }
 
-    // Vue Top 5
-    function updateTop5View() {
-      const container = $('top5List');
-      if (!container) return;
-      
-      container.innerHTML = '';
-      
-      const topParticipants = participants.slice(0, 10); // Montrer jusqu'à 10 participants
-      
-      if (topParticipants.length === 0) {
-        container.innerHTML = '<p style="text-align:center;">Scannez d\'abord quelques personnes !</p>';
-        return;
-      }
-      
-      topParticipants.forEach((participant, index) => {
-        const card = document.createElement('div');
-        card.className = 'participant-card';
-        
-        let medal = '';
-        if (index === 0) medal = '🥇 ';
-        else if (index === 1) medal = '🥈 ';
-        else if (index === 2) medal = '🥉 ';
-        
-        card.innerHTML = `
-          <strong>${medal}${participant.cityName}</strong>
-          <span class="distance-badge">${participant.distance.toFixed(1)} km</span>
-          <div style="clear:both;"></div>
-          <small>Rencontré à ${new Date(participant.timestamp).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</small>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    // Vue Carte
-    function updateMapView() {
-      const container = $('mapContainer');
-      const legend = $('mapLegend');
-      
-      if (!container || !legend) return;
-      
-      // Nettoyer la carte
-      container.querySelectorAll('.map-point').forEach(point => point.remove());
-      legend.innerHTML = '';
-      
-      if (!workCoords || participants.length === 0) {
-        legend.innerHTML = '<p>Sélectionnez un lieu de travail et scannez des personnes</p>';
-        return;
-      }
-      
-      // Ajouter les participants sur la carte
-      participants.forEach(participant => {
-        const point = document.createElement('div');
-        point.className = 'map-point';
-        
-        // Position relative par rapport au centre (lieu de travail)
-        const latDiff = participant.lat - workCoords.lat;
-        const lonDiff = participant.lon - workCoords.lon;
-        
-        // Conversion approximative en pixels (1 degré = 100 pixels)
-        const x = 50 + (lonDiff * 5000);
-        const y = 50 - (latDiff * 5000);
-        
-        point.style.left = `${Math.max(10, Math.min(90, x))}%`;
-        point.style.top = `${Math.max(10, Math.min(90, y))}%`;
-        point.title = `${participant.cityName} (${participant.distance.toFixed(1)}km)`;
-        
-        container.appendChild(point);
-      });
-      
-      // Légende
-      legend.innerHTML = `
-        <p><strong>Légende :</strong></p>
-        <p>🔴 Centre : Lieu de travail</p>
-        <p>🟢 Points : Participants</p>
-        <p>${participants.length} personne(s) sur la carte</p>
-      `;
-    }
-
     // Gestion caméra
     function stopCamera() {
       scanning = false;
       
       const stopScanBtn = $('stopScanBtn');
       const scanBtn = $('scanBtn');
+      const gameStopScanBtn = $('gameStopScanBtn');
+      const gameScanBtn = $('gameScanBtn');
       const video = $('video');
       
       if (stopScanBtn) stopScanBtn.style.display = 'none';
       if (scanBtn) {
         scanBtn.style.display = 'block';
         scanBtn.classList.add('scan-animation');
+      }
+      if (gameStopScanBtn) gameStopScanBtn.style.display = 'none';
+      if (gameScanBtn) {
+        gameScanBtn.style.display = 'block';
+        gameScanBtn.classList.add('scan-animation');
       }
       
       if (animationFrameId) {
@@ -606,11 +659,11 @@
       if (video) video.style.display = 'none';
     }
 
-    function startScanLoop() {
+    function startScanLoop(isGame = false) {
       const video = $('video');
       const canvas = $('canvas');
-      const scanBtn = $('scanBtn');
-      const stopScanBtn = $('stopScanBtn');
+      const scanBtn = isGame ? $('gameScanBtn') : $('scanBtn');
+      const stopScanBtn = isGame ? $('gameStopScanBtn') : $('stopScanBtn');
       
       if (!video || !canvas) {
         showError('Éléments caméra non trouvés');
@@ -654,11 +707,15 @@
                   const parsedData = JSON.parse(code.data);
                   
                   if (parsedData.id && parsedData.lat && parsedData.lon) {
-                    if (addParticipant(parsedData)) {
-                      const distance = haversineKm(myCoords.lat, myCoords.lon, parsedData.lat, parsedData.lon);
-                      showSuccess(`✅ Connecté ! Distance: ${distance.toFixed(1)} km`);
+                    if (isGame) {
+                      handleGameScan(parsedData);
                     } else {
-                      showError('⚠️ Déjà connecté avec cette personne');
+                      if (addParticipant(parsedData)) {
+                        const distance = haversineKm(myCoords.lat, myCoords.lon, parsedData.lat, parsedData.lon);
+                        showSuccess(`✅ Connecté ! Distance: ${distance.toFixed(1)} km`);
+                      } else {
+                        showError('⚠️ Déjà connecté avec cette personne');
+                      }
                     }
                     return;
                   }
@@ -687,7 +744,9 @@
       const saveLocationBtn = $('saveLocation');
       const scanBtn = $('scanBtn');
       const stopScanBtn = $('stopScanBtn');
-      const workAddress = $('workAddress');
+      const gameScanBtn = $('gameScanBtn');
+      const gameStopScanBtn = $('gameStopScanBtn');
+      const resetGameBtn = $('resetGameBtn');
       
       if (saveLocationBtn) {
         saveLocationBtn.addEventListener('click', async () => {
@@ -736,21 +795,23 @@
       }
       
       if (scanBtn) {
-        scanBtn.addEventListener('click', startScanLoop);
+        scanBtn.addEventListener('click', () => startScanLoop(false));
       }
       
       if (stopScanBtn) {
         stopScanBtn.addEventListener('click', stopCamera);
       }
       
-      if (workAddress) {
-        workAddress.addEventListener('change', function() {
-          if (this.value) {
-            const [lat, lon] = this.value.split(',').map(Number);
-            workCoords = { lat, lon };
-            updateMapView();
-          }
-        });
+      if (gameScanBtn) {
+        gameScanBtn.addEventListener('click', () => startScanLoop(true));
+      }
+      
+      if (gameStopScanBtn) {
+        gameStopScanBtn.addEventListener('click', stopCamera);
+      }
+      
+      if (resetGameBtn) {
+        resetGameBtn.addEventListener('click', resetGame);
       }
     });
 
