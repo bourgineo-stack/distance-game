@@ -220,6 +220,18 @@
     .continue-btn:disabled {
       background: #cccccc;
     }
+    .location-section {
+      transition: all 0.3s ease;
+    }
+    .location-section.completed {
+      opacity: 0.7;
+    }
+    .completed-message {
+      color: #4CAF50;
+      font-weight: bold;
+      text-align: center;
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -238,39 +250,48 @@
       <div class="error-message" id="errorMessage"></div>
       <div class="success-message" id="successMessage"></div>
       
-      <input id="userAddress" placeholder="📍 Entrez votre adresse complète" />
-      <button id="saveLocation">Valider ma localisation</button>
-      
-      <div id="addressPreview" class="address-preview" style="display: none;">
-        <strong>Adresse détectée :</strong> <span id="detectedAddress"></span>
+      <!-- Section localisation - masquée après validation -->
+      <div id="locationSection" class="location-section">
+        <input id="userAddress" placeholder="📍 Entrez votre adresse complète" />
+        <button id="saveLocation">Valider ma localisation</button>
       </div>
 
-      <div class="qrcode-container" id="qrcodeContainer" style="display: none;">
-        <p>Votre code à partager :</p>
-        <div id="qrcode"></div>
-      </div>
-
-      <div id="scanSection" style="display: none;">
-        <button id="scanBtn" class="scan-animation">📱 Scanner un code</button>
-        <button id="stopScanBtn" style="display: none; background: #ff6b6b;">🛑 Arrêter</button>
-        <div id="scanResult"></div>
-      </div>
-
-      <div id="questionSection" style="display: none;">
-        <div class="question-bubble">
-          <div id="questionBubble"></div>
-          <div class="question-options" id="questionOptions"></div>
-          <button id="continueBtn" class="continue-btn" disabled>➡️ Continuer à scanner</button>
+      <!-- Section affichée après validation de la localisation -->
+      <div id="afterLocationSection" style="display: none;">
+        <div class="completed-message">
+          ✅ Localisation enregistrée
         </div>
-      </div>
+        <div id="addressPreview" class="address-preview">
+          <strong>Adresse détectée :</strong> <span id="detectedAddress"></span>
+        </div>
 
-      <div class="progress-bar">
-        <div class="progress" id="step1Progress" style="width: 0%"></div>
-      </div>
-      <p>Personnes scannées : <span id="scanCount">0</span></p>
+        <div class="qrcode-container" id="qrcodeContainer">
+          <p>Votre code à partager :</p>
+          <div id="qrcode"></div>
+        </div>
 
-      <div class="navigation-buttons">
-        <button onclick="showStep(2)" id="goToStep2" disabled>🎮 Lancer le défi voisins</button>
+        <div id="scanSection">
+          <button id="scanBtn" class="scan-animation">📱 Scanner un code</button>
+          <button id="stopScanBtn" style="display: none; background: #ff6b6b;">🛑 Arrêter</button>
+          <div id="scanResult"></div>
+        </div>
+
+        <div id="questionSection" style="display: none;">
+          <div class="question-bubble">
+            <div id="questionBubble"></div>
+            <div class="question-options" id="questionOptions"></div>
+            <button id="continueBtn" class="continue-btn" disabled>➡️ Continuer à scanner</button>
+          </div>
+        </div>
+
+        <div class="progress-bar">
+          <div class="progress" id="step1Progress" style="width: 0%"></div>
+        </div>
+        <p>Personnes scannées : <span id="scanCount">0</span></p>
+
+        <div class="navigation-buttons">
+          <button onclick="showStep(2)" id="goToStep2" disabled>🎮 Lancer le défi voisins</button>
+        </div>
       </div>
     </div>
 
@@ -860,19 +881,20 @@
             };
             myFullAddress = res.fullAddress;
             
-            // Afficher l'adresse détectée
-            const addressPreview = $('addressPreview');
-            const detectedAddress = $('detectedAddress');
-            if (addressPreview && detectedAddress) {
-              detectedAddress.textContent = res.fullAddress;
-              addressPreview.style.display = 'block';
+            // Masquer la section de saisie et afficher la section après localisation
+            const locationSection = $('locationSection');
+            const afterLocationSection = $('afterLocationSection');
+            
+            if (locationSection && afterLocationSection) {
+              locationSection.style.display = 'none';
+              afterLocationSection.style.display = 'block';
             }
             
-            const qrcodeContainer = $('qrcodeContainer');
-            const scanSection = $('scanSection');
-            
-            if (qrcodeContainer) qrcodeContainer.style.display = 'block';
-            if (scanSection) scanSection.style.display = 'block';
+            // Afficher l'adresse détectée
+            const detectedAddress = $('detectedAddress');
+            if (detectedAddress) {
+              detectedAddress.textContent = res.fullAddress;
+            }
             
             genMyQRCode();
             showSuccess(`✅ Localisation enregistrée ! Votre ID: ${myUniqueId}`);
