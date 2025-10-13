@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Connectez-vous par la distance</title>
+  <title>Distance entre deux villes</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <style>
     * { box-sizing: border-box; }
@@ -11,193 +11,82 @@
       text-align: center;
       margin: 16px;
       padding: 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      min-height: 100vh;
-    }
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      padding: 20px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      background-color: #f9f9f9;
+      color: #222;
     }
     input, button {
-      padding: 15px 20px;
-      margin: 10px 5px;
+      padding: 12px 16px;
+      margin: 8px 4px;
       font-size: 16px;
-      border-radius: 12px;
-      border: none;
+      border-radius: 8px;
+      border: 1px solid #ccc;
       display: inline-block;
-      width: 100%;
-      max-width: 300px;
-    }
-    input {
-      background: rgba(255, 255, 255, 0.9);
-      color: #333;
-    }
-    button {
-      background: #4CAF50;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    button:hover {
-      background: #45a049;
-      transform: translateY(-2px);
-    }
-    button:disabled {
-      background: #cccccc;
-      transform: none;
+      width: auto;
+      max-width: 90%;
     }
     #qrcode {
       display: none;
       margin: 24px auto;
-      width: 200px;
-      height: 200px;
-      padding: 10px;
-      background: white;
-      border-radius: 12px;
+      width: 180px;
+      height: 180px;
+      padding: 0;
+      background-color: transparent;
     }
     #scanBtn, #stopScanBtn {
-      width: 200px;
-      margin: 10px auto;
+      display: block;
+      margin: 16px auto;
+      width: 180px;
     }
     #stopScanBtn {
       display: none;
-      background-color: #ff6b6b;
+      background-color: #ff4444;
+      color: white;
     }
     #video {
       width: 100%;
-      max-width: 300px;
+      max-width: 420px;
       margin: 12px auto;
       display: none;
-      border-radius: 12px;
+      border-radius: 8px;
       background: #000;
-      transform: rotateY(180deg);
+      transform: rotateY(180deg); /* Miroir pour un effet plus naturel */
     }
     #canvas { display: none; }
     #result {
-      margin: 20px auto;
+      display: block;
+      margin: 16px auto;
       font-weight: bold;
       min-height: 1.4em;
-      font-size: 1.2rem;
-      background: rgba(255, 255, 255, 0.2);
-      padding: 15px;
-      border-radius: 12px;
+      font-size: 1rem;
+      color: #004085;
     }
-    h2 { 
-      font-size: 1.8rem; 
-      margin-bottom: 20px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
+    h2 { font-size: 1.4rem; margin-bottom: 12px; }
     .scanning-message {
       display: none;
-      color: #fff;
+      color: #666;
       font-style: italic;
-      margin: 15px 0;
-    }
-    .participants-list {
-      display: none;
-      margin-top: 20px;
-      text-align: left;
-    }
-    .participant-item {
-      background: rgba(255, 255, 255, 0.15);
-      margin: 10px 0;
-      padding: 15px;
-      border-radius: 12px;
-      border-left: 4px solid #4CAF50;
-    }
-    .distance-badge {
-      background: #ffd700;
-      color: #333;
-      padding: 4px 8px;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      font-weight: bold;
-      float: right;
-    }
-    .close-btn {
-      background: transparent;
-      border: none;
-      color: white;
-      font-size: 1.5rem;
-      float: right;
-      cursor: pointer;
-      width: auto;
-      margin: 0;
-      padding: 0 10px;
-    }
-    .stats {
-      display: none;
-      background: rgba(255, 255, 255, 0.2);
-      padding: 15px;
-      border-radius: 12px;
-      margin: 15px 0;
-    }
-    .carpool-suggestion {
-      background: rgba(76, 175, 80, 0.3);
-      border: 2px solid #4CAF50;
-      padding: 15px;
-      border-radius: 12px;
-      margin: 15px 0;
-      display: none;
-    }
-    .section-title {
-      font-size: 1.3rem;
-      margin: 25px 0 15px 0;
-      text-align: left;
-      border-bottom: 2px solid rgba(255,255,255,0.3);
-      padding-bottom: 8px;
+      margin: 8px 0;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>🚗 Connectez-vous !</h2>
-    <p>Entrez votre ville et scannez les QR codes des autres participants pour découvrir vos voisins !</p>
-    
-    <input id="city" placeholder="📍 Entrez votre ville" />
-    <button id="saveCity">Valider ma ville</button>
-    
-    <div id="result"></div>
-    
-    <div id="qrcode"></div>
-    
-    <button id="scanBtn" disabled>📱 Scanner un QR code</button>
-    <button id="stopScanBtn">🛑 Arrêter le scan</button>
-    <div class="scanning-message" id="scanningMessage">Recherche de QR code...</div>
-    
-    <div class="stats" id="stats">
-      <div class="section-title">📊 Vos statistiques</div>
-      <div id="statsContent"></div>
-    </div>
-    
-    <div class="carpool-suggestion" id="carpoolSuggestion">
-      <div class="section-title">🤝 Suggestions covoiturage</div>
-      <div id="carpoolContent"></div>
-    </div>
-    
-    <div class="participants-list" id="participantsList">
-      <div class="section-title">👥 Participants rencontrés</div>
-      <div id="participantsContainer"></div>
-    </div>
-    
-    <video id="video" autoplay playsinline muted></video>
-    <canvas id="canvas"></canvas>
-  </div>
+  <h2>Distance entre deux villes</h2>
+  <input id="city" placeholder="Entrez votre ville" />
+  <button id="saveCity">Valider ma ville</button>
+  <div id="result"></div>
+  <div id="qrcode"></div>
+  <button id="scanBtn" disabled>Scanner un QR code</button>
+  <button id="stopScanBtn">Arrêter le scan</button>
+  <div class="scanning-message" id="scanningMessage">Recherche de QR code...</div>
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas"></canvas>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
   <script>
     const $ = id => document.getElementById(id);
     let myCoords = null;
-    let myCityName = '';
-    let participants = [];
+    let otherCoords = null;
     let scanning = false;
     let animationFrameId = null;
     const video = $('video');
@@ -217,135 +106,19 @@
       const res = await fetch(url);
       const data = await res.json();
       if (!data || data.length === 0) throw new Error('Ville non trouvée');
-      return { 
-        lat: parseFloat(data[0].lat), 
-        lon: parseFloat(data[0].lon), 
-        name: data[0].display_name.split(',')[0] 
-      };
+      return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), name: data[0].display_name };
     }
 
     function genMyQRCode() {
       $('qrcode').style.display = 'block';
       $('qrcode').innerHTML = '';
       new QRCode($('qrcode'), {
-        text: JSON.stringify({ 
-          lat: myCoords.lat, 
-          lon: myCoords.lon,
-          city: myCityName,
-          timestamp: Date.now()
-        }),
+        text: JSON.stringify({ lat: myCoords.lat, lon: myCoords.lon }),
         width: 180,
         height: 180,
         colorDark: '#000000',
         colorLight: '#ffffff',
       });
-    }
-
-    function addParticipant(lat, lon, cityName) {
-      // Éviter les doublons
-      const existing = participants.find(p => 
-        p.lat === lat && p.lon === lon
-      );
-      
-      if (existing) {
-        return false; // Déjà dans la liste
-      }
-      
-      const distance = haversineKm(myCoords.lat, myCoords.lon, lat, lon);
-      const participant = {
-        lat,
-        lon,
-        cityName,
-        distance,
-        timestamp: Date.now()
-      };
-      
-      participants.push(participant);
-      participants.sort((a, b) => a.distance - b.distance);
-      
-      updateParticipantsList();
-      updateStats();
-      updateCarpoolSuggestions();
-      
-      return true;
-    }
-
-    function updateParticipantsList() {
-      const container = $('participantsContainer');
-      container.innerHTML = '';
-      
-      if (participants.length === 0) {
-        container.innerHTML = '<p style="text-align:center;">Aucun participant rencontré encore</p>';
-        $('participantsList').style.display = 'none';
-        return;
-      }
-      
-      $('participantsList').style.display = 'block';
-      
-      participants.forEach((participant, index) => {
-        const item = document.createElement('div');
-        item.className = 'participant-item';
-        item.innerHTML = `
-          <button class="close-btn" onclick="removeParticipant(${index})">×</button>
-          <strong>${participant.cityName}</strong>
-          <span class="distance-badge">${participant.distance.toFixed(1)} km</span>
-          <div style="clear:both;"></div>
-        `;
-        container.appendChild(item);
-      });
-    }
-
-    function removeParticipant(index) {
-      participants.splice(index, 1);
-      updateParticipantsList();
-      updateStats();
-      updateCarpoolSuggestions();
-    }
-
-    function updateStats() {
-      const statsContent = $('statsContent');
-      
-      if (participants.length === 0) {
-        $('stats').style.display = 'none';
-        return;
-      }
-      
-      $('stats').style.display = 'block';
-      
-      const closest = participants[0];
-      const totalDistance = participants.reduce((sum, p) => sum + p.distance, 0);
-      const averageDistance = totalDistance / participants.length;
-      
-      statsContent.innerHTML = `
-        <p>👥 <strong>${participants.length}</strong> participant(s) rencontré(s)</p>
-        <p>📍 Plus proche: <strong>${closest.cityName}</strong> (${closest.distance.toFixed(1)} km)</p>
-        <p>📏 Distance moyenne: <strong>${averageDistance.toFixed(1)} km</strong></p>
-      `;
-    }
-
-    function updateCarpoolSuggestions() {
-      const carpoolContent = $('carpoolContent');
-      const closeParticipants = participants.filter(p => p.distance < 20);
-      
-      if (closeParticipants.length === 0) {
-        $('carpoolSuggestion').style.display = 'none';
-        return;
-      }
-      
-      $('carpoolSuggestion').style.display = 'block';
-      
-      let suggestions = '<p>Vous habitez près de :</p>';
-      closeParticipants.forEach(p => {
-        let emoji = '🏠';
-        if (p.distance < 5) emoji = '🚶‍♂️';
-        else if (p.distance < 10) emoji = '🚲';
-        else emoji = '🚗';
-        
-        suggestions += `<p>${emoji} <strong>${p.cityName}</strong> - ${p.distance.toFixed(1)} km</p>`;
-      });
-      
-      suggestions += '<p><em>N\'hésitez pas à leur proposer du covoiturage !</em></p>';
-      carpoolContent.innerHTML = suggestions;
     }
 
     function stopCamera() {
@@ -368,6 +141,7 @@
       
       video.style.display = 'none';
       
+      // Forcer un redessin pour iOS
       setTimeout(() => {
         document.body.style.display = 'none';
         setTimeout(() => {
@@ -412,33 +186,14 @@
                 try {
                   const parsed = JSON.parse(code.data);
                   if (parsed.lat && parsed.lon) {
-                    const cityName = parsed.city || 'Ville inconnue';
+                    otherCoords = { lat: parsed.lat, lon: parsed.lon };
+                    const d = haversineKm(myCoords.lat, myCoords.lon, otherCoords.lat, otherCoords.lon);
+                    $('result').textContent = `Distance : ${d.toFixed(1)} km`;
                     
-                    // Ajouter le participant
-                    const added = addParticipant(parsed.lat, parsed.lon, cityName);
-                    
-                    if (added) {
-                      // Afficher un message de succès
-                      const distance = haversineKm(myCoords.lat, myCoords.lon, parsed.lat, parsed.lon);
-                      $('result').innerHTML = `
-                        <div style="color:#4CAF50;">
-                          ✅ <strong>Connecté avec ${cityName} !</strong><br>
-                          Distance: ${distance.toFixed(1)} km
-                        </div>
-                      `;
-                      
-                      // Continuer à scanner après un court délai
-                      setTimeout(() => {
-                        $('result').innerHTML = 'Prêt à scanner un autre QR code';
-                      }, 3000);
-                    } else {
-                      $('result').innerHTML = `
-                        <div style="color:#ff9800;">
-                          ⚠️ Déjà connecté avec ${cityName}
-                        </div>
-                      `;
-                    }
-                    
+                    // Arrêter le scan automatiquement après détection
+                    setTimeout(() => {
+                      stopCamera();
+                    }, 500);
                     return;
                   }
                 } catch (e) {
@@ -460,28 +215,22 @@
       });
     }
 
-    // Événements
     $('saveCity').addEventListener('click', async () => {
       const city = $('city').value.trim();
       if (!city) {
         alert('Entrez une ville');
         return;
       }
-      $('result').innerHTML = '🔍 Recherche en cours...';
+      $('result').textContent = 'Recherche…';
       try {
         const res = await geocode(city);
         myCoords = { lat: res.lat, lon: res.lon };
-        myCityName = res.name;
         genMyQRCode();
         $('scanBtn').disabled = false;
-        $('result').innerHTML = `
-          <div style="color:#4CAF50;">
-            ✅ Ville enregistrée : <strong>${res.name}</strong>
-          </div>
-        `;
+        $('result').textContent = `Ville enregistrée : ${res.name.split(',')[0]}`;
       } catch (e) {
         alert('Erreur: ' + e);
-        $('result').innerHTML = '';
+        $('result').textContent = '';
       }
     });
 
