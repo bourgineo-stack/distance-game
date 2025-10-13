@@ -2,14 +2,15 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Réseau de proximité</title>
+  <title>Connectez-vous par la distance</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <style>
     * { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      margin: 0;
-      padding: 20px;
+      text-align: center;
+      margin: 16px;
+      padding: 0;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       min-height: 100vh;
@@ -25,11 +26,13 @@
     }
     input, button {
       padding: 15px 20px;
-      margin: 10px 0;
+      margin: 10px 5px;
       font-size: 16px;
       border-radius: 12px;
       border: none;
+      display: inline-block;
       width: 100%;
+      max-width: 300px;
     }
     input {
       background: rgba(255, 255, 255, 0.9);
@@ -42,25 +45,68 @@
       cursor: pointer;
       transition: all 0.3s ease;
     }
-    button:hover { background: #45a049; }
-    button:disabled { background: #cccccc; }
+    button:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      background: #cccccc;
+      transform: none;
+    }
     #qrcode {
-      margin: 20px auto;
+      display: none;
+      margin: 24px auto;
       width: 200px;
       height: 200px;
       padding: 10px;
       background: white;
       border-radius: 12px;
     }
-    .section {
-      background: rgba(255, 255, 255, 0.15);
+    #scanBtn, #stopScanBtn {
+      width: 200px;
+      margin: 10px auto;
+    }
+    #stopScanBtn {
+      display: none;
+      background-color: #ff6b6b;
+    }
+    #video {
+      width: 100%;
+      max-width: 300px;
+      margin: 12px auto;
+      display: none;
+      border-radius: 12px;
+      background: #000;
+      transform: rotateY(180deg);
+    }
+    #canvas { display: none; }
+    #result {
+      margin: 20px auto;
+      font-weight: bold;
+      min-height: 1.4em;
+      font-size: 1.2rem;
+      background: rgba(255, 255, 255, 0.2);
       padding: 15px;
       border-radius: 12px;
-      margin: 15px 0;
-      display: none;
     }
-    .participant-card {
-      background: rgba(255, 255, 255, 0.2);
+    h2 { 
+      font-size: 1.8rem; 
+      margin-bottom: 20px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .scanning-message {
+      display: none;
+      color: #fff;
+      font-style: italic;
+      margin: 15px 0;
+    }
+    .participants-list {
+      display: none;
+      margin-top: 20px;
+      text-align: left;
+    }
+    .participant-item {
+      background: rgba(255, 255, 255, 0.15);
       margin: 10px 0;
       padding: 15px;
       border-radius: 12px;
@@ -82,105 +128,67 @@
       font-size: 1.5rem;
       float: right;
       cursor: pointer;
-      margin: -10px -10px 0 0;
-      padding: 5px 10px;
+      width: auto;
+      margin: 0;
+      padding: 0 10px;
     }
-    .tab-container {
-      display: flex;
-      margin: 20px 0;
-      background: rgba(255, 255, 255, 0.1);
+    .stats {
+      display: none;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 15px;
       border-radius: 12px;
-      overflow: hidden;
+      margin: 15px 0;
     }
-    .tab {
-      flex: 1;
-      padding: 12px;
-      text-align: center;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-    .tab.active {
-      background: rgba(76, 175, 80, 0.3);
-      font-weight: bold;
-    }
-    .carpool-group {
+    .carpool-suggestion {
       background: rgba(76, 175, 80, 0.3);
       border: 2px solid #4CAF50;
-      border-radius: 12px;
       padding: 15px;
-      margin: 10px 0;
+      border-radius: 12px;
+      margin: 15px 0;
+      display: none;
     }
-    .search-bar {
-      background: rgba(255, 255, 255, 0.2);
-      border: none;
-      border-radius: 25px;
-      padding: 12px 20px;
-      color: white;
-      width: 100%;
-      margin-bottom: 15px;
+    .section-title {
+      font-size: 1.3rem;
+      margin: 25px 0 15px 0;
+      text-align: left;
+      border-bottom: 2px solid rgba(255,255,255,0.3);
+      padding-bottom: 8px;
     }
-    .search-bar::placeholder { color: rgba(255, 255, 255, 0.7); }
-    h2 { text-align: center; margin-bottom: 20px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>🤝 Réseau de proximité</h2>
+    <h2>🚗 Connectez-vous !</h2>
+    <p>Entrez votre ville et scannez les QR codes des autres participants pour découvrir vos voisins !</p>
     
-    <!-- Étape 1 : Saisie de la ville -->
-    <div id="setupSection">
-      <p>Commencez par indiquer votre ville pour générer votre code de connexion</p>
-      <input id="city" placeholder="📍 Entrez votre ville" />
-      <button id="saveCity">Valider ma ville</button>
+    <input id="city" placeholder="📍 Entrez votre ville" />
+    <button id="saveCity">Valider ma ville</button>
+    
+    <div id="result"></div>
+    
+    <div id="qrcode"></div>
+    
+    <button id="scanBtn" disabled>📱 Scanner un QR code</button>
+    <button id="stopScanBtn">🛑 Arrêter le scan</button>
+    <div class="scanning-message" id="scanningMessage">Recherche de QR code...</div>
+    
+    <div class="stats" id="stats">
+      <div class="section-title">📊 Vos statistiques</div>
+      <div id="statsContent"></div>
     </div>
-
-    <!-- Interface principale après configuration -->
-    <div id="mainSection" style="display: none;">
-      <div class="tab-container">
-        <div class="tab active" onclick="showTab('proximite')">📍 Proximité</div>
-        <div class="tab" onclick="showTab('liste')">👥 Tous les contacts</div>
-        <div class="tab" onclick="showTab('monCode')">📱 Mon code</div>
-      </div>
-
-      <!-- Tab 1 : Vue par proximité -->
-      <div id="proximite" class="tab-content">
-        <input type="text" class="search-bar" placeholder="🔍 Rechercher une ville..." onkeyup="filterParticipants(this.value)">
-        
-        <div class="carpool-group">
-          <h4>🚗 Covoiturage facile (moins de 10km)</h4>
-          <div id="carpoolList"></div>
-        </div>
-        
-        <div class="carpool-group" style="background: rgba(255, 152, 0, 0.3); border-color: #ff9800;">
-          <h4>🚲 Distance vélo (10-20km)</h4>
-          <div id="bikeList"></div>
-        </div>
-        
-        <div class="carpool-group" style="background: rgba(33, 150, 243, 0.3); border-color: #2196f3;">
-          <h4>🌟 Dans la région (20-50km)</h4>
-          <div id="regionList"></div>
-        </div>
-      </div>
-
-      <!-- Tab 2 : Liste complète -->
-      <div id="liste" class="tab-content" style="display: none;">
-        <input type="text" class="search-bar" placeholder="🔍 Rechercher un contact..." onkeyup="filterAllParticipants(this.value)">
-        <div id="allParticipantsList"></div>
-      </div>
-
-      <!-- Tab 3 : Mon QR Code -->
-      <div id="monCode" class="tab-content" style="display: none;">
-        <p>Partagez ce code avec les autres participants :</p>
-        <div id="qrcode"></div>
-        <button id="scanBtn">📱 Scanner un code</button>
-        <button id="stopScanBtn" style="display: none; background: #ff6b6b;">🛑 Arrêter le scan</button>
-        <div id="scanningMessage" style="display: none; text-align: center; margin: 10px 0;">Recherche de code...</div>
-      </div>
+    
+    <div class="carpool-suggestion" id="carpoolSuggestion">
+      <div class="section-title">🤝 Suggestions covoiturage</div>
+      <div id="carpoolContent"></div>
     </div>
-
-    <!-- Caméra pour scanning -->
-    <video id="video" autoplay playsinline muted style="display: none; width: 100%; border-radius: 12px;"></video>
-    <canvas id="canvas" style="display: none;"></canvas>
+    
+    <div class="participants-list" id="participantsList">
+      <div class="section-title">👥 Participants rencontrés</div>
+      <div id="participantsContainer"></div>
+    </div>
+    
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
@@ -196,7 +204,6 @@
     const canvas = $('canvas');
     const ctx = canvas.getContext('2d');
 
-    // Calcul de distance
     function haversineKm(aLat, aLon, bLat, bLon) {
       const R = 6371;
       const dLat = (bLat - aLat) * Math.PI / 180;
@@ -205,7 +212,6 @@
       return 2 * R * Math.atan2(Math.sqrt(A), Math.sqrt(1 - A));
     }
 
-    // Géocodage
     async function geocode(city) {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}`;
       const res = await fetch(url);
@@ -218,8 +224,8 @@
       };
     }
 
-    // Génération QR Code
     function genMyQRCode() {
+      $('qrcode').style.display = 'block';
       $('qrcode').innerHTML = '';
       new QRCode($('qrcode'), {
         text: JSON.stringify({ 
@@ -235,27 +241,15 @@
       });
     }
 
-    // Navigation par onglets
-    function showTab(tabName) {
-      // Désactiver tous les onglets
-      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
-      
-      // Activer l'onglet sélectionné
-      event.target.classList.add('active');
-      $(tabName).style.display = 'block';
-      
-      // Arrêter la caméra si on quitte l'onglet scan
-      if (tabName !== 'monCode') {
-        stopCamera();
-      }
-    }
-
-    // Ajouter un participant
     function addParticipant(lat, lon, cityName) {
       // Éviter les doublons
-      const existing = participants.find(p => p.cityName === cityName);
-      if (existing) return false;
+      const existing = participants.find(p => 
+        p.lat === lat && p.lon === lon
+      );
+      
+      if (existing) {
+        return false; // Déjà dans la liste
+      }
       
       const distance = haversineKm(myCoords.lat, myCoords.lon, lat, lon);
       const participant = {
@@ -263,107 +257,102 @@
         lon,
         cityName,
         distance,
-        timestamp: Date.now(),
-        id: Math.random().toString(36).substr(2, 9)
+        timestamp: Date.now()
       };
       
       participants.push(participant);
       participants.sort((a, b) => a.distance - b.distance);
       
-      updateAllDisplays();
+      updateParticipantsList();
+      updateStats();
+      updateCarpoolSuggestions();
+      
       return true;
     }
 
-    // Mettre à jour toutes les vues
-    function updateAllDisplays() {
-      updateProximityView();
-      updateAllParticipantsList();
-    }
-
-    // Vue par proximité
-    function updateProximityView() {
-      const carpoolList = $('#carpoolList');
-      const bikeList = $('#bikeList');
-      const regionList = $('#regionList');
-      
-      carpoolList.innerHTML = '';
-      bikeList.innerHTML = '';
-      regionList.innerHTML = '';
-      
-      participants.forEach(participant => {
-        const card = createParticipantCard(participant);
-        
-        if (participant.distance < 10) {
-          carpoolList.appendChild(card);
-        } else if (participant.distance < 20) {
-          bikeList.appendChild(card);
-        } else if (participant.distance < 50) {
-          regionList.appendChild(card);
-        }
-      });
-    }
-
-    // Liste complète
-    function updateAllParticipantsList() {
-      const container = $('#allParticipantsList');
+    function updateParticipantsList() {
+      const container = $('participantsContainer');
       container.innerHTML = '';
       
-      participants.forEach(participant => {
-        container.appendChild(createParticipantCard(participant));
+      if (participants.length === 0) {
+        container.innerHTML = '<p style="text-align:center;">Aucun participant rencontré encore</p>';
+        $('participantsList').style.display = 'none';
+        return;
+      }
+      
+      $('participantsList').style.display = 'block';
+      
+      participants.forEach((participant, index) => {
+        const item = document.createElement('div');
+        item.className = 'participant-item';
+        item.innerHTML = `
+          <button class="close-btn" onclick="removeParticipant(${index})">×</button>
+          <strong>${participant.cityName}</strong>
+          <span class="distance-badge">${participant.distance.toFixed(1)} km</span>
+          <div style="clear:both;"></div>
+        `;
+        container.appendChild(item);
       });
     }
 
-    // Créer une carte participant
-    function createParticipantCard(participant) {
-      const card = document.createElement('div');
-      card.className = 'participant-card';
-      card.dataset.city = participant.cityName.toLowerCase();
+    function removeParticipant(index) {
+      participants.splice(index, 1);
+      updateParticipantsList();
+      updateStats();
+      updateCarpoolSuggestions();
+    }
+
+    function updateStats() {
+      const statsContent = $('statsContent');
       
-      let emoji = '🌟';
-      if (participant.distance < 5) emoji = '🚶‍♂️';
-      else if (participant.distance < 10) emoji = '🚗';
-      else if (participant.distance < 20) emoji = '🚲';
+      if (participants.length === 0) {
+        $('stats').style.display = 'none';
+        return;
+      }
       
-      card.innerHTML = `
-        <button class="close-btn" onclick="removeParticipant('${participant.id}')">×</button>
-        <strong>${emoji} ${participant.cityName}</strong>
-        <span class="distance-badge">${participant.distance.toFixed(1)} km</span>
-        <div style="clear:both;"></div>
-        <small>Rencontré à ${new Date(participant.timestamp).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</small>
+      $('stats').style.display = 'block';
+      
+      const closest = participants[0];
+      const totalDistance = participants.reduce((sum, p) => sum + p.distance, 0);
+      const averageDistance = totalDistance / participants.length;
+      
+      statsContent.innerHTML = `
+        <p>👥 <strong>${participants.length}</strong> participant(s) rencontré(s)</p>
+        <p>📍 Plus proche: <strong>${closest.cityName}</strong> (${closest.distance.toFixed(1)} km)</p>
+        <p>📏 Distance moyenne: <strong>${averageDistance.toFixed(1)} km</strong></p>
       `;
+    }
+
+    function updateCarpoolSuggestions() {
+      const carpoolContent = $('carpoolContent');
+      const closeParticipants = participants.filter(p => p.distance < 20);
       
-      return card;
-    }
-
-    // Filtrer les participants
-    function filterParticipants(searchTerm) {
-      const cards = document.querySelectorAll('#proximite .participant-card');
-      cards.forEach(card => {
-        const matches = card.dataset.city.includes(searchTerm.toLowerCase());
-        card.style.display = matches ? 'block' : 'none';
+      if (closeParticipants.length === 0) {
+        $('carpoolSuggestion').style.display = 'none';
+        return;
+      }
+      
+      $('carpoolSuggestion').style.display = 'block';
+      
+      let suggestions = '<p>Vous habitez près de :</p>';
+      closeParticipants.forEach(p => {
+        let emoji = '🏠';
+        if (p.distance < 5) emoji = '🚶‍♂️';
+        else if (p.distance < 10) emoji = '🚲';
+        else emoji = '🚗';
+        
+        suggestions += `<p>${emoji} <strong>${p.cityName}</strong> - ${p.distance.toFixed(1)} km</p>`;
       });
+      
+      suggestions += '<p><em>N\'hésitez pas à leur proposer du covoiturage !</em></p>';
+      carpoolContent.innerHTML = suggestions;
     }
 
-    function filterAllParticipants(searchTerm) {
-      const cards = document.querySelectorAll('#liste .participant-card');
-      cards.forEach(card => {
-        const matches = card.dataset.city.includes(searchTerm.toLowerCase());
-        card.style.display = matches ? 'block' : 'none';
-      });
-    }
-
-    // Supprimer un participant
-    function removeParticipant(id) {
-      participants = participants.filter(p => p.id !== id);
-      updateAllDisplays();
-    }
-
-    // Gestion caméra
     function stopCamera() {
       scanning = false;
-      $('#scanningMessage').style.display = 'none';
-      $('#stopScanBtn').style.display = 'none';
-      $('#scanBtn').style.display = 'block';
+      $('scanningMessage').style.display = 'none';
+      $('stopScanBtn').style.display = 'none';
+      $('scanBtn').style.display = 'block';
       
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
@@ -371,22 +360,35 @@
       }
       
       if (video.srcObject) {
-        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject.getTracks().forEach(track => {
+          track.stop();
+        });
         video.srcObject = null;
       }
       
       video.style.display = 'none';
+      
+      setTimeout(() => {
+        document.body.style.display = 'none';
+        setTimeout(() => {
+          document.body.style.display = 'block';
+        }, 50);
+      }, 100);
     }
 
     function startScanLoop() {
       scanning = true;
-      $('#scanBtn').style.display = 'none';
-      $('#stopScanBtn').style.display = 'block';
-      $('#scanningMessage').style.display = 'block';
+      $('scanBtn').style.display = 'none';
+      $('stopScanBtn').style.display = 'block';
+      $('scanningMessage').style.display = 'block';
       video.style.display = 'block';
       
       navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' }
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
       }).then(stream => {
         video.srcObject = stream;
         video.play();
@@ -412,11 +414,31 @@
                   if (parsed.lat && parsed.lon) {
                     const cityName = parsed.city || 'Ville inconnue';
                     
-                    if (addParticipant(parsed.lat, parsed.lon, cityName)) {
-                      // Succès - retour à l'onglet proximité
-                      showTab('proximite');
-                      stopCamera();
+                    // Ajouter le participant
+                    const added = addParticipant(parsed.lat, parsed.lon, cityName);
+                    
+                    if (added) {
+                      // Afficher un message de succès
+                      const distance = haversineKm(myCoords.lat, myCoords.lon, parsed.lat, parsed.lon);
+                      $('result').innerHTML = `
+                        <div style="color:#4CAF50;">
+                          ✅ <strong>Connecté avec ${cityName} !</strong><br>
+                          Distance: ${distance.toFixed(1)} km
+                        </div>
+                      `;
+                      
+                      // Continuer à scanner après un court délai
+                      setTimeout(() => {
+                        $('result').innerHTML = 'Prêt à scanner un autre QR code';
+                      }, 3000);
+                    } else {
+                      $('result').innerHTML = `
+                        <div style="color:#ff9800;">
+                          ⚠️ Déjà connecté avec ${cityName}
+                        </div>
+                      `;
                     }
+                    
                     return;
                   }
                 } catch (e) {
@@ -445,25 +467,34 @@
         alert('Entrez une ville');
         return;
       }
-      
+      $('result').innerHTML = '🔍 Recherche en cours...';
       try {
         const res = await geocode(city);
         myCoords = { lat: res.lat, lon: res.lon };
         myCityName = res.name;
-        
-        $('setupSection').style.display = 'none';
-        $('mainSection').style.display = 'block';
         genMyQRCode();
-        
+        $('scanBtn').disabled = false;
+        $('result').innerHTML = `
+          <div style="color:#4CAF50;">
+            ✅ Ville enregistrée : <strong>${res.name}</strong>
+          </div>
+        `;
       } catch (e) {
         alert('Erreur: ' + e);
+        $('result').innerHTML = '';
       }
     });
 
-    $('scanBtn').addEventListener('click', startScanLoop);
+    $('scanBtn').addEventListener('click', () => {
+      if (myCoords) startScanLoop();
+      else alert('Commencez par saisir votre ville');
+    });
+
     $('stopScanBtn').addEventListener('click', stopCamera);
 
+    // Gérer la fermeture de la page
     window.addEventListener('beforeunload', stopCamera);
+    window.addEventListener('pagehide', stopCamera);
   </script>
 </body>
 </html>
