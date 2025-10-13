@@ -232,6 +232,15 @@
       text-align: center;
       margin: 10px 0;
     }
+    .distance-info {
+      background: rgba(255, 215, 0, 0.2);
+      border: 1px solid #ffd700;
+      padding: 10px;
+      border-radius: 8px;
+      margin: 10px 0;
+      text-align: center;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -438,6 +447,23 @@
       }
     }
 
+    // Afficher la distance
+    function showDistance(distance) {
+      const scanResult = $('scanResult');
+      if (scanResult) {
+        let emoji = '🌟';
+        if (distance < 5) emoji = '🚶‍♂️';
+        else if (distance < 10) emoji = '🚗';
+        else if (distance < 20) emoji = '🚲';
+        
+        scanResult.innerHTML = `
+          <div class="distance-info">
+            ${emoji} Distance : <strong>${distance.toFixed(1)} km</strong>
+          </div>
+        `;
+      }
+    }
+
     // Calcul de distance
     function haversineKm(aLat, aLon, bLat, bLon) {
       const R = 6371;
@@ -620,7 +646,8 @@
         if (!scannedTargets.includes(data.id)) {
           scannedTargets.push(data.id);
           score++;
-          showSuccess(`✅ Bravo ! ${gameTargets[targetIndex].cityName} est bien un de vos voisins !`);
+          const distance = haversineKm(myCoords.lat, myCoords.lon, data.lat, data.lon);
+          showSuccess(`✅ Bravo ! ${gameTargets[targetIndex].cityName} est bien un de vos voisins ! (${distance.toFixed(1)} km)`);
         } else {
           showError("⚠️ Vous avez déjà scanné cette personne !");
         }
@@ -701,6 +728,9 @@
       
       // Mettre à jour le compteur et la progression
       updateProgress();
+      
+      // Afficher la distance
+      showDistance(distance);
       
       // Si distance < 10km, afficher une question
       if (distance < 10) {
@@ -820,7 +850,8 @@
                     } else {
                       if (addParticipant(parsedData)) {
                         const distance = haversineKm(myCoords.lat, myCoords.lon, parsedData.lat, parsedData.lon);
-                        showSuccess(`✅ Connecté ! Distance: ${distance.toFixed(1)} km`);
+                        showSuccess(`✅ Connecté !`);
+                        showDistance(distance);
                       } else {
                         showError('⚠️ Déjà connecté avec cette personne');
                       }
