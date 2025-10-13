@@ -164,6 +164,21 @@
       margin: 10px 0;
       display: none;
     }
+    .navigation-buttons {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .navigation-buttons button {
+      flex: 1;
+    }
+    .address-preview {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 10px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-size: 0.9em;
+    }
   </style>
 </head>
 <body>
@@ -183,9 +198,13 @@
       <div class="error-message" id="errorMessage"></div>
       <div class="success-message" id="successMessage"></div>
       
-      <input id="userAddress" placeholder="📍 Entrez votre adresse ou ville" />
+      <input id="userAddress" placeholder="📍 Entrez votre adresse complète" />
       <button id="saveLocation">Valider ma localisation</button>
       
+      <div id="addressPreview" class="address-preview" style="display: none;">
+        <strong>Adresse détectée :</strong> <span id="detectedAddress"></span>
+      </div>
+
       <div class="qrcode-container" id="qrcodeContainer" style="display: none;">
         <p>Votre code à partager :</p>
         <div id="qrcode"></div>
@@ -205,17 +224,23 @@
         <div class="progress" id="step1Progress" style="width: 0%"></div>
       </div>
       <p>Personnes scannées : <span id="scanCount">0</span></p>
+
+      <div class="navigation-buttons">
+        <button onclick="showStep(2)" id="goToStep2" disabled>🌟 Voir mes voisins</button>
+      </div>
     </div>
 
     <!-- Étape 2 : Top 5 des plus proches -->
     <div id="step2" class="step">
-      <h2>🌟 Étape 2 : Vos 5 plus proches voisins</h2>
+      <h2>🌟 Étape 2 : Vos plus proches voisins</h2>
       <p>Retrouvez et connectez-vous avec les personnes qui habitent le plus près de chez vous !</p>
       
       <div id="top5List"></div>
       
-      <button onclick="showStep(1)">⬅️ Retour au scan</button>
-      <button onclick="showStep(3)" id="nextToStep3" style="display: none;">➡️ Passer à la carte</button>
+      <div class="navigation-buttons">
+        <button onclick="showStep(1)">⬅️ Retour au scan</button>
+        <button onclick="showStep(3)" id="goToStep3">🗺️ Voir la carte</button>
+      </div>
     </div>
 
     <!-- Étape 3 : Carte collective -->
@@ -237,7 +262,10 @@
       
       <div id="mapLegend"></div>
       
-      <button onclick="showStep(2)">⬅️ Retour aux voisins</button>
+      <div class="navigation-buttons">
+        <button onclick="showStep(2)">⬅️ Retour aux voisins</button>
+        <button onclick="showStep(1)">📱 Retour au scan</button>
+      </div>
     </div>
 
     <!-- Caméra -->
@@ -253,8 +281,15 @@
       return document.getElementById(id);
     }
 
+    // Générer un ID unique (15 caractères aléatoires)
+    function generateUniqueId() {
+      return Math.random().toString(36).substr(2, 15);
+    }
+
     let myCoords = null;
     let myCityName = '';
+    let myFullAddress = '';
+    let myUniqueId = '';
     let participants = [];
     let scanning = false;
     let animationFrameId = null;
@@ -320,25 +355,19 @@
         if (!data || data.length === 0) throw new Error('Localisation non trouvée');
         
         const firstResult = data[0];
-        let cityName = firstResult.display_name.split(',')[0];
-        
-        // Essayer d'extraire un meilleur nom de ville
-        if (firstResult.address) {
-          cityName = firstResult.address.city || firstResult.address.town || firstResult.address.village || cityName;
-        }
         
         return { 
           lat: parseFloat(firstResult.lat), 
           lon: parseFloat(firstResult.lon), 
           displayName: firstResult.display_name,
-          cityName: cityName
+          fullAddress: firstResult.display_name
         };
       } catch (error) {
         throw new Error('Erreur de géocodage: ' + error.message);
       }
     }
 
-    // Génération QR Code ultra-simple
+    // Génération QR Code avec ID unique
     function genMyQRCode() {
       const qrcodeElement = $('qrcode');
       if (!qrcodeElement) {
@@ -348,8 +377,12 @@
       
       qrcodeElement.innerHTML = '';
       
-      // Données ultra-simplifiées : seulement les coordonnées
-      const qrData = `${myCoords.lat.toFixed(6)},${myCoords.lon.toFixed(6)}`;
+      // Données : ID unique + coordonnées précises
+      const qrData = JSON.stringify({
+        id: myUniqueId,
+        lat: myCoords.lat,
+        lon: myCoords.lon
+      });
       
       try {
         new QRCode(qrcodeElement, {
@@ -397,19 +430,19 @@
     }
 
     // Ajouter un participant avec question si <10km
-    function addParticipant(lat, lon, cityName) {
-      // Éviter les doublons
-      const existing = participants.find(p => p.lat === lat && p.lon === lon);
+    function addParticipant(data) {
+      // Vérifier par ID unique au lieu des coordonnées
+      const existing = participants.find(p => p.id === data.id);
       if (existing) return false;
       
-      const distance = haversineKm(myCoords.lat, myCoords.lon, lat, lon);
+      const distance = haversineKm(myCoords.lat, myCoords.lon, data.lat, data.lon);
       const participant = {
-        lat,
-        lon,
-        cityName: cityName || 'Localité inconnue',
+        id: data.id,
+        lat: data.lat,
+        lon: data.lon,
+        cityName: data.cityName || 'Localité inconnue',
         distance,
-        timestamp: Date.now(),
-        id: Math.random().toString(36).substr(2, 9)
+        timestamp: Date.now()
       };
       
       participants.push(participant);
@@ -423,10 +456,10 @@
         showRandomQuestion();
       }
       
-      // Activer le bouton vers l'étape 3 si on a au moins 5 participants
-      const nextButton = $('nextToStep3');
-      if (nextButton && participants.length >= 5) {
-        nextButton.style.display = 'block';
+      // Activer le bouton vers l'étape 2 si on a au moins 1 participant
+      const goToStep2 = $('goToStep2');
+      if (goToStep2 && participants.length >= 1) {
+        goToStep2.disabled = false;
       }
       
       return true;
@@ -475,14 +508,14 @@
       
       container.innerHTML = '';
       
-      const top5 = participants.slice(0, 5);
+      const topParticipants = participants.slice(0, 10); // Montrer jusqu'à 10 participants
       
-      if (top5.length === 0) {
+      if (topParticipants.length === 0) {
         container.innerHTML = '<p style="text-align:center;">Scannez d\'abord quelques personnes !</p>';
         return;
       }
       
-      top5.forEach((participant, index) => {
+      topParticipants.forEach((participant, index) => {
         const card = document.createElement('div');
         card.className = 'participant-card';
         
@@ -617,19 +650,15 @@
               
               if (code) {
                 try {
-                  // Le QR code contient maintenant juste "lat,lon"
-                  const coords = code.data.split(',');
-                  if (coords.length === 2) {
-                    const lat = parseFloat(coords[0]);
-                    const lon = parseFloat(coords[1]);
-                    
-                    if (!isNaN(lat) && !isNaN(lon)) {
-                      if (addParticipant(lat, lon, myCityName)) {
-                        const distance = haversineKm(myCoords.lat, myCoords.lon, lat, lon);
-                        showSuccess(`✅ Connecté ! Distance: ${distance.toFixed(1)} km`);
-                      } else {
-                        showError('⚠️ Déjà connecté avec cette personne');
-                      }
+                  // Parser les données JSON du QR code
+                  const parsedData = JSON.parse(code.data);
+                  
+                  if (parsedData.id && parsedData.lat && parsedData.lon) {
+                    if (addParticipant(parsedData)) {
+                      const distance = haversineKm(myCoords.lat, myCoords.lon, parsedData.lat, parsedData.lon);
+                      showSuccess(`✅ Connecté ! Distance: ${distance.toFixed(1)} km`);
+                    } else {
+                      showError('⚠️ Déjà connecté avec cette personne');
                     }
                     return;
                   }
@@ -676,11 +705,20 @@
           
           try {
             const res = await geocode(location);
+            myUniqueId = generateUniqueId();
             myCoords = { 
               lat: res.lat, 
               lon: res.lon
             };
-            myCityName = res.cityName;
+            myFullAddress = res.fullAddress;
+            
+            // Afficher l'adresse détectée
+            const addressPreview = $('addressPreview');
+            const detectedAddress = $('detectedAddress');
+            if (addressPreview && detectedAddress) {
+              detectedAddress.textContent = res.fullAddress;
+              addressPreview.style.display = 'block';
+            }
             
             const qrcodeContainer = $('qrcodeContainer');
             const scanSection = $('scanSection');
@@ -689,7 +727,7 @@
             if (scanSection) scanSection.style.display = 'block';
             
             genMyQRCode();
-            showSuccess(`✅ Localisation enregistrée : ${res.cityName}`);
+            showSuccess(`✅ Localisation enregistrée ! Votre ID: ${myUniqueId}`);
             
           } catch (e) {
             showError('Erreur: ' + e.message);
