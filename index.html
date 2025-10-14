@@ -262,7 +262,7 @@
       position: relative;
       margin: 20px 0;
     }
-    #video {
+    #video, #gameVideo, #simpleVideo {
       width: 100%;
       max-width: 300px;
       border-radius: 12px;
@@ -280,6 +280,9 @@
     }
     .simple-scan-btn:hover {
       background: #F57C00;
+    }
+    .simple-scan-section {
+      margin: 20px 0;
     }
   </style>
 </head>
@@ -434,7 +437,14 @@
       <h2>🔍 Mode Scan Simple</h2>
       <p>Scannez les codes des autres participants pour voir instantanément la distance qui vous sépare.</p>
       
-      <div class="camera-view active">
+      <!-- Section scan simple -->
+      <div class="simple-scan-section">
+        <button id="simpleScanBtn" class="scan-animation">📱 Démarrer le scan</button>
+        <div id="simpleScanResult"></div>
+      </div>
+
+      <!-- Vue caméra pour scan simple -->
+      <div class="camera-view" id="simpleCameraView">
         <div class="camera-container">
           <video id="simpleVideo" autoplay playsinline muted></video>
         </div>
@@ -442,8 +452,6 @@
           <button id="simpleStopScanBtn" style="background: #ff6b6b;">🛑 Arrêter la caméra</button>
         </div>
       </div>
-      
-      <div id="simpleScanResult" style="text-align: center; margin: 20px 0;"></div>
       
       <div class="navigation-buttons">
         <button onclick="showStep(2)">⬅️ Retour aux rencontres</button>
@@ -684,7 +692,7 @@
         if (step) step.classList.remove('active');
       });
       $('simpleScanMode').classList.add('active');
-      startSimpleScanLoop();
+      // On ne démarre pas automatiquement le scan, on attend que l'utilisateur clique
     }
 
     // Initialiser le jeu
@@ -918,7 +926,7 @@
     function startScanLoop(type = 'normal') {
       const videoId = type === 'game' ? 'gameVideo' : type === 'simple' ? 'simpleVideo' : 'video';
       const canvasId = type === 'game' ? 'gameCanvas' : type === 'simple' ? 'simpleCanvas' : 'canvas';
-      const cameraViewId = type === 'game' ? 'gameCameraView' : type === 'simple' ? 'simpleScanMode' : 'cameraView';
+      const cameraViewId = type === 'game' ? 'gameCameraView' : type === 'simple' ? 'simpleCameraView' : 'cameraView';
       const scanBtnId = type === 'game' ? 'gameScanBtn' : type === 'simple' ? 'simpleScanBtn' : 'scanBtn';
       
       const video = $(videoId);
@@ -1009,6 +1017,7 @@
       const stopScanBtn = $('stopScanBtn');
       const gameScanBtn = $('gameScanBtn');
       const gameStopScanBtn = $('gameStopScanBtn');
+      const simpleScanBtn = $('simpleScanBtn');
       const simpleStopScanBtn = $('simpleStopScanBtn');
       const resetGameBtn = $('resetGameBtn');
       
@@ -1071,6 +1080,10 @@
       
       if (gameStopScanBtn) {
         gameStopScanBtn.addEventListener('click', stopAllCameras);
+      }
+      
+      if (simpleScanBtn) {
+        simpleScanBtn.addEventListener('click', () => startSimpleScanLoop());
       }
       
       if (simpleStopScanBtn) {
