@@ -241,6 +241,46 @@
       text-align: center;
       font-weight: bold;
     }
+    .invite-section {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .invite-btn {
+      background: #9C27B0;
+    }
+    .invite-btn:hover {
+      background: #7B1FA2;
+    }
+    .camera-view {
+      display: none;
+      text-align: center;
+    }
+    .camera-view.active {
+      display: block;
+    }
+    .camera-container {
+      position: relative;
+      margin: 20px 0;
+    }
+    #video {
+      width: 100%;
+      max-width: 300px;
+      border-radius: 12px;
+      background: #000;
+    }
+    .camera-controls {
+      margin: 15px 0;
+    }
+    .simple-scan-mode {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .simple-scan-btn {
+      background: #FF9800;
+    }
+    .simple-scan-btn:hover {
+      background: #F57C00;
+    }
   </style>
 </head>
 <body>
@@ -249,23 +289,24 @@
     <div class="step-indicator">
       <div class="step-dot active" id="step1Dot"></div>
       <div class="step-dot" id="step2Dot"></div>
+      <div class="step-dot" id="step3Dot"></div>
     </div>
 
-    <!-- Étape 1 : Flashage libre avec questions -->
+    <!-- Étape 1 : Configuration -->
     <div id="step1" class="step active">
-      <h2>🎯 Étape 1 : Rencontres & Questions</h2>
-      <p>Scannez un maximum de personnes ! À chaque fois que vous trouvez quelqu'un à moins de 10km, une question à poser !</p>
+      <h2>🚗 Défi Covoiturage</h2>
+      <p>Commencez par indiquer votre localisation pour participer au jeu et générer votre code personnel.</p>
       
       <div class="error-message" id="errorMessage"></div>
       <div class="success-message" id="successMessage"></div>
       
-      <!-- Section localisation - masquée après validation -->
+      <!-- Section localisation -->
       <div id="locationSection" class="location-section">
         <input id="userAddress" placeholder="📍 Entrez votre adresse complète" />
         <button id="saveLocation">Valider ma localisation</button>
       </div>
 
-      <!-- Section affichée après validation de la localisation -->
+      <!-- Section après validation -->
       <div id="afterLocationSection" style="display: none;">
         <div class="completed-message">
           ✅ Localisation enregistrée
@@ -274,38 +315,64 @@
           <strong>Adresse détectée :</strong> <span id="detectedAddress"></span>
         </div>
 
-        <div class="qrcode-container" id="qrcodeContainer">
-          <p>Votre code à partager :</p>
-          <div id="qrcode"></div>
+        <div class="invite-section">
+          <button class="invite-btn" onclick="showInvitePage()">📨 Inviter d'autres participants</button>
         </div>
-
-        <div id="scanSection">
-          <button id="scanBtn" class="scan-animation">📱 Scanner un code</button>
-          <button id="stopScanBtn" style="display: none; background: #ff6b6b;">🛑 Arrêter</button>
-          <div id="scanResult"></div>
-        </div>
-
-        <div id="questionSection" style="display: none;">
-          <div class="question-bubble">
-            <div id="questionBubble"></div>
-            <div class="question-options" id="questionOptions"></div>
-            <button id="continueBtn" class="continue-btn" disabled>➡️ Continuer à scanner</button>
-          </div>
-        </div>
-
-        <div class="progress-bar">
-          <div class="progress" id="step1Progress" style="width: 0%"></div>
-        </div>
-        <p>Personnes scannées : <span id="scanCount">0</span></p>
 
         <div class="navigation-buttons">
-          <button onclick="showStep(2)" id="goToStep2" disabled>🎮 Lancer le défi voisins</button>
+          <button onclick="showStep(2)">🎮 Commencer les rencontres</button>
         </div>
       </div>
     </div>
 
-    <!-- Étape 2 : Défi des voisins -->
+    <!-- Étape 2 : Rencontres & Questions -->
     <div id="step2" class="step">
+      <h2>🎯 Rencontres & Questions</h2>
+      <p>Scannez un maximum de personnes ! À chaque fois que vous trouvez quelqu'un à moins de 10km, une question s'affiche pour briser la glace.</p>
+      
+      <div class="qrcode-container" id="qrcodeContainer">
+        <p>Votre code à partager :</p>
+        <div id="qrcode"></div>
+      </div>
+
+      <!-- Vue caméra centrale -->
+      <div class="camera-view" id="cameraView">
+        <div class="camera-container">
+          <video id="video" autoplay playsinline muted></video>
+        </div>
+        <div class="camera-controls">
+          <button id="stopScanBtn" style="background: #ff6b6b;">🛑 Arrêter la caméra</button>
+        </div>
+      </div>
+
+      <!-- Section scan normale -->
+      <div id="normalScanSection">
+        <button id="scanBtn" class="scan-animation">📱 Scanner un code</button>
+        <div id="scanResult"></div>
+      </div>
+
+      <div id="questionSection" style="display: none;">
+        <div class="question-bubble">
+          <div id="questionBubble"></div>
+          <div class="question-options" id="questionOptions"></div>
+          <button id="continueBtn" class="continue-btn" disabled>➡️ Continuer à scanner</button>
+        </div>
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress" id="step1Progress" style="width: 0%"></div>
+      </div>
+      <p>Personnes scannées : <span id="scanCount">0</span></p>
+
+      <div class="navigation-buttons">
+        <button onclick="showStep(1)">⬅️ Retour</button>
+        <button onclick="showStep(3)" id="goToStep3" disabled>🎮 Lancer le défi voisins</button>
+        <button class="simple-scan-btn" onclick="showSimpleScanMode()">🔍 Mode scan simple</button>
+      </div>
+    </div>
+
+    <!-- Étape 3 : Défi des voisins -->
+    <div id="step3" class="step">
       <h2>🎮 Défi des Voisins</h2>
       
       <div class="game-instructions">
@@ -324,21 +391,69 @@
         <div id="targetList"></div>
       </div>
 
+      <!-- Vue caméra pour le jeu -->
+      <div class="camera-view" id="gameCameraView">
+        <div class="camera-container">
+          <video id="gameVideo" autoplay playsinline muted></video>
+        </div>
+        <div class="camera-controls">
+          <button id="gameStopScanBtn" style="background: #ff6b6b;">🛑 Arrêter la caméra</button>
+        </div>
+      </div>
+
       <div id="gameScanSection">
         <button id="gameScanBtn" class="scan-animation">📱 Scanner un voisin</button>
-        <button id="gameStopScanBtn" style="display: none; background: #ff6b6b;">🛑 Arrêter</button>
         <div id="gameScanResult"></div>
       </div>
 
       <div class="navigation-buttons">
-        <button onclick="showStep(1)">⬅️ Retour aux rencontres</button>
+        <button onclick="showStep(2)">⬅️ Retour aux rencontres</button>
         <button onclick="resetGame()" id="resetGameBtn" style="background: #ff9800;">🔄 Recommencer le défi</button>
+        <button class="simple-scan-btn" onclick="showSimpleScanMode()">🔍 Mode scan simple</button>
       </div>
     </div>
 
-    <!-- Caméra -->
-    <video id="video" autoplay playsinline muted style="display: none; width: 100%; border-radius: 12px;"></video>
+    <!-- Page d'invitation -->
+    <div id="invitePage" class="step">
+      <h2>📨 Inviter des participants</h2>
+      <p>Partagez ce QR code avec vos amis pour qu'ils puissent rejoindre l'activité :</p>
+      
+      <div class="qrcode-container">
+        <div id="inviteQrcode"></div>
+      </div>
+      
+      <p>Ils pourront scanner ce code pour accéder directement à l'application.</p>
+      
+      <div class="navigation-buttons">
+        <button onclick="showStep(1)">⬅️ Retour</button>
+      </div>
+    </div>
+
+    <!-- Mode scan simple -->
+    <div id="simpleScanMode" class="step">
+      <h2>🔍 Mode Scan Simple</h2>
+      <p>Scannez les codes des autres participants pour voir instantanément la distance qui vous sépare.</p>
+      
+      <div class="camera-view active">
+        <div class="camera-container">
+          <video id="simpleVideo" autoplay playsinline muted></video>
+        </div>
+        <div class="camera-controls">
+          <button id="simpleStopScanBtn" style="background: #ff6b6b;">🛑 Arrêter la caméra</button>
+        </div>
+      </div>
+      
+      <div id="simpleScanResult" style="text-align: center; margin: 20px 0;"></div>
+      
+      <div class="navigation-buttons">
+        <button onclick="showStep(2)">⬅️ Retour aux rencontres</button>
+        <button onclick="showStep(3)">🎮 Retour au défi</button>
+      </div>
+    </div>
+
     <canvas id="canvas" style="display: none;"></canvas>
+    <canvas id="gameCanvas" style="display: none;"></canvas>
+    <canvas id="simpleCanvas" style="display: none;"></canvas>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
@@ -390,26 +505,6 @@
       {
         question: "Plutôt sport ou détente ?",
         options: ["🏃‍♂️ Sport", "🛋️ Détente"]
-      },
-      {
-        question: "Plutôt matin ou soir ?",
-        options: ["🌅 Matin", "🌃 Soir"]
-      },
-      {
-        question: "Plutôt sucré ou salé ?",
-        options: ["🍰 Sucré", "🍕 Salé"]
-      },
-      {
-        question: "Plutôt ville ou campagne ?",
-        options: ["🏙️ Ville", "🌳 Campagne"]
-      },
-      {
-        question: "Plutôt été ou hiver ?",
-        options: ["☀️ Été", "⛄ Hiver"]
-      },
-      {
-        question: "Plutôt voyage ou maison ?",
-        options: ["✈️ Voyage", "🏠 Maison"]
       }
     ];
 
@@ -448,8 +543,8 @@
     }
 
     // Afficher la distance
-    function showDistance(distance) {
-      const scanResult = $('scanResult');
+    function showDistance(distance, elementId = 'scanResult') {
+      const scanResult = $(elementId);
       if (scanResult) {
         let emoji = '🌟';
         if (distance < 5) emoji = '🚶‍♂️';
@@ -473,7 +568,7 @@
       return 2 * R * Math.atan2(Math.sqrt(A), Math.sqrt(1 - A));
     }
 
-    // Géocodage avec gestion adresse/ville
+    // Géocodage
     async function geocode(location) {
       try {
         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&addressdetails=1`;
@@ -504,7 +599,6 @@
       
       qrcodeElement.innerHTML = '';
       
-      // Données : ID unique + coordonnées précises
       const qrData = JSON.stringify({
         id: myUniqueId,
         lat: myCoords.lat,
@@ -522,7 +616,30 @@
         });
       } catch (error) {
         showError("Erreur génération QR code: " + error.message);
-        console.error("QR Code error:", error);
+      }
+    }
+
+    // Génération QR code d'invitation
+    function genInviteQRCode() {
+      const inviteQrcode = $('inviteQrcode');
+      if (!inviteQrcode) return;
+      
+      inviteQrcode.innerHTML = '';
+      
+      // QR code pointant vers cette page
+      const currentUrl = window.location.href;
+      
+      try {
+        new QRCode(inviteQrcode, {
+          text: currentUrl,
+          width: 200,
+          height: 200,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.L
+        });
+      } catch (error) {
+        console.error("Erreur génération QR code d'invitation:", error);
       }
     }
 
@@ -543,24 +660,41 @@
       if (stepElement) stepElement.classList.add('active');
       if (dotElement) dotElement.classList.add('active');
       
-      // Arrêter la caméra si on change d'étape
-      stopCamera();
+      // Arrêter toutes les caméras
+      stopAllCameras();
       
-      // Initialiser le jeu si on va à l'étape 2
-      if (stepNumber === 2) {
+      // Initialiser le jeu si on va à l'étape 3
+      if (stepNumber === 3) {
         initGame();
       }
+    }
+
+    // Page d'invitation
+    function showInvitePage() {
+      document.querySelectorAll('.step').forEach(step => {
+        if (step) step.classList.remove('active');
+      });
+      $('invitePage').classList.add('active');
+      genInviteQRCode();
+    }
+
+    // Mode scan simple
+    function showSimpleScanMode() {
+      document.querySelectorAll('.step').forEach(step => {
+        if (step) step.classList.remove('active');
+      });
+      $('simpleScanMode').classList.add('active');
+      startSimpleScanLoop();
     }
 
     // Initialiser le jeu
     function initGame() {
       if (participants.length < 5) {
         showError("Vous devez scanner au moins 5 personnes pour jouer !");
-        setTimeout(() => showStep(1), 2000);
+        setTimeout(() => showStep(2), 2000);
         return;
       }
       
-      // Sélectionner les 5 plus proches
       gameTargets = participants.slice(0, 5);
       scannedTargets = [];
       attemptsLeft = 5;
@@ -577,11 +711,9 @@
 
     // Mettre à jour l'affichage du jeu
     function updateGameDisplay() {
-      // Mettre à jour le score
       $('scoreBadge').textContent = `Score: ${score}/3`;
       $('attemptsLeft').textContent = attemptsLeft;
       
-      // Mettre à jour la liste des cibles
       const targetList = $('targetList');
       targetList.innerHTML = '';
       
@@ -609,7 +741,6 @@
         targetList.appendChild(card);
       });
       
-      // Vérifier si le jeu est terminé
       checkGameEnd();
     }
 
@@ -638,11 +769,9 @@
     function handleGameScan(data) {
       if (!gameActive) return false;
       
-      // Vérifier si c'est une cible
       const targetIndex = gameTargets.findIndex(target => target.id === data.id);
       
       if (targetIndex !== -1) {
-        // C'est une cible valide
         if (!scannedTargets.includes(data.id)) {
           scannedTargets.push(data.id);
           score++;
@@ -652,12 +781,18 @@
           showError("⚠️ Vous avez déjà scanné cette personne !");
         }
       } else {
-        // Ce n'est pas une cible
         showError("❌ Ce n'est pas un de vos 5 voisins les plus proches !");
       }
       
       attemptsLeft--;
       updateGameDisplay();
+      return true;
+    }
+
+    // Scanner simple (juste la distance)
+    function handleSimpleScan(data) {
+      const distance = haversineKm(myCoords.lat, myCoords.lon, data.lat, data.lon);
+      showDistance(distance, 'simpleScanResult');
       return true;
     }
 
@@ -673,43 +808,34 @@
         questionBubble.textContent = randomQuestion.question;
         questionOptions.innerHTML = '';
         
-        // Créer les options
         randomQuestion.options.forEach((option, index) => {
           const optionDiv = document.createElement('div');
           optionDiv.className = 'question-option';
           optionDiv.textContent = option;
           optionDiv.onclick = function() {
-            // Désélectionner toutes les options
             document.querySelectorAll('.question-option').forEach(opt => {
               opt.classList.remove('selected');
             });
-            // Sélectionner cette option
             this.classList.add('selected');
-            // Activer le bouton continuer
             continueBtn.disabled = false;
           };
           questionOptions.appendChild(optionDiv);
         });
         
-        // Réinitialiser le bouton continuer
         continueBtn.disabled = true;
         continueBtn.onclick = function() {
           questionSection.style.display = 'none';
-          // Réactiver le bouton scan
           $('scanBtn').style.display = 'block';
           $('scanBtn').classList.add('scan-animation');
         };
         
         questionSection.style.display = 'block';
-        
-        // Arrêter automatiquement la caméra
-        stopCamera();
+        stopAllCameras();
       }
     }
 
-    // Ajouter un participant avec question si <10km
+    // Ajouter un participant
     function addParticipant(data) {
-      // Vérifier par ID unique au lieu des coordonnées
       const existing = participants.find(p => p.id === data.id);
       if (existing) return false;
       
@@ -726,21 +852,16 @@
       participants.push(participant);
       participants.sort((a, b) => a.distance - b.distance);
       
-      // Mettre à jour le compteur et la progression
       updateProgress();
-      
-      // Afficher la distance
       showDistance(distance);
       
-      // Si distance < 10km, afficher une question
       if (distance < 10) {
         showRandomQuestion();
       }
       
-      // Activer le bouton vers l'étape 2 si on a au moins 5 participants
-      const goToStep2 = $('goToStep2');
-      if (goToStep2 && participants.length >= 5) {
-        goToStep2.disabled = false;
+      const goToStep3 = $('goToStep3');
+      if (goToStep3 && participants.length >= 5) {
+        goToStep3.disabled = false;
       }
       
       return true;
@@ -756,52 +877,54 @@
         scanCountElement.textContent = scanCount;
       }
       
-      // Progression basée sur le nombre de scans (max 20 pour 100%)
       const progress = Math.min((scanCount / 20) * 100, 100);
       if (progressElement) {
         progressElement.style.width = `${progress}%`;
       }
     }
 
-    // Gestion caméra
-    function stopCamera() {
+    // Arrêter toutes les caméras
+    function stopAllCameras() {
       scanning = false;
       
-      const stopScanBtn = $('stopScanBtn');
-      const scanBtn = $('scanBtn');
-      const gameStopScanBtn = $('gameStopScanBtn');
-      const gameScanBtn = $('gameScanBtn');
-      const video = $('video');
+      // Masquer toutes les vues caméra
+      document.querySelectorAll('.camera-view').forEach(view => {
+        view.classList.remove('active');
+      });
       
-      if (stopScanBtn) stopScanBtn.style.display = 'none';
-      if (scanBtn) {
-        scanBtn.style.display = 'block';
-        scanBtn.classList.add('scan-animation');
-      }
-      if (gameStopScanBtn) gameStopScanBtn.style.display = 'none';
-      if (gameScanBtn) {
-        gameScanBtn.style.display = 'block';
-        gameScanBtn.classList.add('scan-animation');
-      }
+      // Réactiver tous les boutons scan
+      document.querySelectorAll('.scan-animation').forEach(btn => {
+        btn.style.display = 'block';
+        btn.classList.add('scan-animation');
+      });
       
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
       }
       
-      if (video && video.srcObject) {
-        video.srcObject.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-      }
-      
-      if (video) video.style.display = 'none';
+      // Arrêter tous les flux vidéo
+      const videos = ['video', 'gameVideo', 'simpleVideo'];
+      videos.forEach(videoId => {
+        const video = $(videoId);
+        if (video && video.srcObject) {
+          video.srcObject.getTracks().forEach(track => track.stop());
+          video.srcObject = null;
+        }
+      });
     }
 
-    function startScanLoop(isGame = false) {
-      const video = $('video');
-      const canvas = $('canvas');
-      const scanBtn = isGame ? $('gameScanBtn') : $('scanBtn');
-      const stopScanBtn = isGame ? $('gameStopScanBtn') : $('stopScanBtn');
+    // Démarrer une boucle de scan
+    function startScanLoop(type = 'normal') {
+      const videoId = type === 'game' ? 'gameVideo' : type === 'simple' ? 'simpleVideo' : 'video';
+      const canvasId = type === 'game' ? 'gameCanvas' : type === 'simple' ? 'simpleCanvas' : 'canvas';
+      const cameraViewId = type === 'game' ? 'gameCameraView' : type === 'simple' ? 'simpleScanMode' : 'cameraView';
+      const scanBtnId = type === 'game' ? 'gameScanBtn' : type === 'simple' ? 'simpleScanBtn' : 'scanBtn';
+      
+      const video = $(videoId);
+      const canvas = $(canvasId);
+      const cameraView = $(cameraViewId);
+      const scanBtn = $(scanBtnId);
       
       if (!video || !canvas) {
         showError('Éléments caméra non trouvés');
@@ -809,12 +932,8 @@
       }
       
       scanning = true;
-      if (scanBtn) {
-        scanBtn.style.display = 'none';
-        scanBtn.classList.remove('scan-animation');
-      }
-      if (stopScanBtn) stopScanBtn.style.display = 'block';
-      video.style.display = 'block';
+      if (scanBtn) scanBtn.style.display = 'none';
+      if (cameraView) cameraView.classList.add('active');
       
       const ctx = canvas.getContext('2d');
       
@@ -841,23 +960,21 @@
               
               if (code) {
                 try {
-                  // Parser les données JSON du QR code
                   const parsedData = JSON.parse(code.data);
                   
                   if (parsedData.id && parsedData.lat && parsedData.lon) {
-                    if (isGame) {
-                      handleGameScan(parsedData);
+                    let handled = false;
+                    if (type === 'game') {
+                      handled = handleGameScan(parsedData);
+                    } else if (type === 'simple') {
+                      handled = handleSimpleScan(parsedData);
                     } else {
-                      if (addParticipant(parsedData)) {
-                        const distance = haversineKm(myCoords.lat, myCoords.lon, parsedData.lat, parsedData.lon);
-                        showSuccess(`✅ Connecté !`);
-                        showDistance(distance);
-                      } else {
-                        showError('⚠️ Déjà connecté avec cette personne');
-                      }
+                      handled = addParticipant(parsedData);
                     }
-                    // Arrêter automatiquement la caméra après un scan réussi
-                    stopCamera();
+                    
+                    if (handled) {
+                      stopAllCameras();
+                    }
                     return;
                   }
                 } catch (e) {
@@ -876,8 +993,13 @@
         animationFrameId = requestAnimationFrame(scan);
       }).catch(e => {
         showError('Erreur accès caméra: ' + e.message);
-        stopCamera();
+        stopAllCameras();
       });
+    }
+
+    // Démarrer le scan simple
+    function startSimpleScanLoop() {
+      startScanLoop('simple');
     }
 
     // Événements
@@ -887,6 +1009,7 @@
       const stopScanBtn = $('stopScanBtn');
       const gameScanBtn = $('gameScanBtn');
       const gameStopScanBtn = $('gameStopScanBtn');
+      const simpleStopScanBtn = $('simpleStopScanBtn');
       const resetGameBtn = $('resetGameBtn');
       
       if (saveLocationBtn) {
@@ -912,7 +1035,6 @@
             };
             myFullAddress = res.fullAddress;
             
-            // Masquer la section de saisie et afficher la section après localisation
             const locationSection = $('locationSection');
             const afterLocationSection = $('afterLocationSection');
             
@@ -921,14 +1043,13 @@
               afterLocationSection.style.display = 'block';
             }
             
-            // Afficher l'adresse détectée
             const detectedAddress = $('detectedAddress');
             if (detectedAddress) {
               detectedAddress.textContent = res.fullAddress;
             }
             
             genMyQRCode();
-            showSuccess(`✅ Localisation enregistrée ! Votre ID: ${myUniqueId}`);
+            showSuccess(`✅ Localisation enregistrée !`);
             
           } catch (e) {
             showError('Erreur: ' + e.message);
@@ -937,19 +1058,23 @@
       }
       
       if (scanBtn) {
-        scanBtn.addEventListener('click', () => startScanLoop(false));
+        scanBtn.addEventListener('click', () => startScanLoop('normal'));
       }
       
       if (stopScanBtn) {
-        stopScanBtn.addEventListener('click', stopCamera);
+        stopScanBtn.addEventListener('click', stopAllCameras);
       }
       
       if (gameScanBtn) {
-        gameScanBtn.addEventListener('click', () => startScanLoop(true));
+        gameScanBtn.addEventListener('click', () => startScanLoop('game'));
       }
       
       if (gameStopScanBtn) {
-        gameStopScanBtn.addEventListener('click', stopCamera);
+        gameStopScanBtn.addEventListener('click', stopAllCameras);
+      }
+      
+      if (simpleStopScanBtn) {
+        simpleStopScanBtn.addEventListener('click', stopAllCameras);
       }
       
       if (resetGameBtn) {
@@ -957,7 +1082,7 @@
       }
     });
 
-    window.addEventListener('beforeunload', stopCamera);
+    window.addEventListener('beforeunload', stopAllCameras);
   </script>
 </body>
 </html>
