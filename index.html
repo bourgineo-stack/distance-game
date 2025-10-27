@@ -284,6 +284,11 @@
     .simple-scan-section {
       margin: 20px 0;
     }
+    .inviteQrcode {
+      margin: 0 auto;
+      display: block;
+    }
+
   </style>
 </head>
 <body>
@@ -297,7 +302,7 @@
 
     <!-- Étape 1 : Configuration -->
     <div id="step1" class="step active">
-      <h2>🚗 Go Different 🚶🚲🚌</h2>
+      <h2>🚗🚶 Go Different 🚲🚌</h2>
       <p>Commencez par indiquer votre localisation pour participer au jeu et générer votre code personnel.</p>
       
       <div class="error-message" id="errorMessage"></div>
@@ -863,7 +868,7 @@
       updateProgress();
       showDistance(distance);
       
-      if (distance < 10) {
+      if (distance < 5) {
         showRandomQuestion();
       }
       
